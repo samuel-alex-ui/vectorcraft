@@ -603,8 +603,7 @@ fn thread_params(cx: &ToolContext, from: NodeId, start: Point, end: Point) -> Va
         is_threadable(n) || matches!(&n.kind, vectorcraft_doc::NodeKind::Path { path, .. } if path.subpaths.first().is_some_and(|s| s.closed))
     };
     // The art the text flows into: what is drawn, not a clipping path's outline.
-    let to =
-        cx.hit_test(start, cx.hit_options()).map(|h| h.top_object(cx.isolation)).filter(|id| *id != from && cx.doc.node(*id).is_some_and(frame));
+    let to = cx.hit_test(start, cx.hit_options()).map(|h| h.top_object(cx.isolation)).filter(|id| *id != from && cx.doc.node(*id).is_some_and(frame));
     match to {
         Some(to) => json!({ "from": from.0, "to": to.0 }),
         None => json!({ "from": from.0, "at": [start.x, start.y] }),
