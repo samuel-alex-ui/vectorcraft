@@ -374,10 +374,10 @@ fn apply_options(n: &mut Node, p: &Value, xml_id: bool, zoom_fade: Option<Option
     if let (Some(v), None) = (lock, locked) {
         n.locked = v;
     }
-    if n.is_layer() {
-        if let Some(fade) = zoom_fade {
-            n.extras_mut().zoom_fade = fade;
-        }
+    if n.is_layer()
+        && let Some(fade) = zoom_fade
+    {
+        n.extras_mut().zoom_fade = fade;
     }
 }
 
