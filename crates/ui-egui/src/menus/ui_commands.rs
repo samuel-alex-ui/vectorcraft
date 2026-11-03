@@ -1,6 +1,12 @@
 /// UI-level commands: (id, label, shortcut, params doc).
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     (
+        "file.newWorldMap",
+        "New World Map",
+        "",
+        "{} create an editable 1000 × 500 pt equirectangular 2:1 world-map canvas; geographic projection and 3D preview are future features",
+    ),
+    (
         crate::addons::pathtools::corner::COMMAND,
         "Corner Tool",
         "",
