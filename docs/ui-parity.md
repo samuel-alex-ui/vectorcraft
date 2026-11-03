@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-31 · **Change:** minor (Color Effects add-on: Find Nearest Swatch, #4923) · **Target:** Adobe Illustrator 2026 (30.x; Units › East Asian Type acts, with Q and Ha units; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys 1.3 camera precision evidence; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; Units › East Asian Type acts, with Q and Ha units; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -215,6 +215,7 @@ tools, never checked side by side) isn't captured row by row.
 | Behaviour | Status | Notes |
 |---|---|---|
 | Space: Hand; Cmd+Space / Cmd+Alt+Space: zoom in/out; middle button pans | done | |
+| Camera coordinate precision | bounded checks | f64 intermediates through the final screen boundary; targeted large-factor arithmetic and simple-vector checks, not enabled extreme UI zoom. [Evidence and limits](aetherys-zoom-precision.md). Scores unchanged. |
 | Document window scroll bars along the right and bottom edges (Normal and Full Screen Mode with Menu Bar; none in Full Screen and Presentation Mode): a thumb as long as the view against the art and the artboards; dragging it scrolls, a click on the track pages, the wheel over a bar scrolls along it; in a rotated view they follow the screen's axes | partial | #2322. The span is the art and the artboards with half a window around them, not Illustrator's 227 in canvas: VectorCraft has no bounded drawing area (#2284). A track click pages rather than jumping to the click; the page size and the rotated-view behaviour are our own choice (the public documentation gives neither) |
 | Cmd/Ctrl: last-used selection tool; Cmd+Alt: Group Selection inside Direct Selection | done | Cmd+Alt lends Group Selection only while Direct Selection is active (Cmd borrow from the Pen keeps Direct Selection so Alt stays copy/subtract); engine pointer regressions |
 | Eyedropper styles highlighted characters only and preserves ranges across Type switches | done | Font/paint, Shift color-only, Unicode, Undo/Redo and stale-range regression tests; enabled non-neutral source or target object transparency is refused atomically; disable Transparency to sample supported attributes |
@@ -603,3 +604,13 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 | 2026-10-22 | minor | Merge current main and complete the Turkish tab-drag labels and validation messages requested by the maintainer; all 24 catalogs covered; scores and estimates unchanged. |
 | 2026-10-22 | minor | Tab-drag follow-up: reconcile upstream progress updates and document drag lifecycle, insertion behavior and regression contracts; behavior, scores and estimates unchanged. |
 | 2026-10-22 | minor | Artwork dragged with Selection switches visible document tabs after a 400 ms hover, then copies editable artwork on canvas release; source and clipboard stay intact; scores and hours unchanged |
+
+## Aetherys 1.3 verification (2026-11-03)
+
+Targeted camera, projection and simple-vector tests are documented in
+[the precision report](aetherys-zoom-precision.md). No parity score or hour
+estimate is reassessed; no full workspace CI is claimed for this phase.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-03 | minor | Final-boundary camera rounding; retained zoom limits; focused tests, Clippy and WASM check. |

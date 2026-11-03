@@ -101,11 +101,13 @@ impl Xf {
         let c = self.rect.center();
         let (dx, dy) = ((p.x - self.center.x) * self.zoom, (p.y - self.center.y) * self.zoom);
         let (sn, cs) = self.rot.sin_cos();
-        pos2(c.x + (dx * cs - dy * sn) as f32, c.y + (dx * sn + dy * cs) as f32)
+        // Keep the camera-relative sum in f64; rounding the offset first loses
+        // small screen coordinates when it nearly cancels the canvas centre.
+        pos2((f64::from(c.x) + (dx * cs - dy * sn)) as f32, (f64::from(c.y) + (dx * sn + dy * cs)) as f32)
     }
     pub fn to_doc(&self, p: Pos2) -> Point {
         let c = self.rect.center();
-        let (dx, dy) = ((p.x - c.x) as f64, (p.y - c.y) as f64);
+        let (dx, dy) = (f64::from(p.x) - f64::from(c.x), f64::from(p.y) - f64::from(c.y));
         let (sn, cs) = self.rot.sin_cos();
         let (ux, uy) = (dx * cs + dy * sn, -dx * sn + dy * cs);
         Point::new(self.center.x + ux / self.zoom, self.center.y + uy / self.zoom)

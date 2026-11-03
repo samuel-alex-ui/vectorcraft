@@ -147,3 +147,13 @@ Die Nummerierung ist ein Vorschlag und darf anhand der Implementierungsrisiken a
 ---
 
 *Dieser Leitfaden ist bewusst als Markdown verfasst, damit er versioniert, erweitert, in GitHub gelesen und Codex als Projektkontext gegeben werden kann.*
+
+
+## Technischer Nachweis Phase 1.3 (3. November 2026)
+
+Die bestehenden Zoom- und Koordinatenpfade sind im
+[technischen Prüfbericht](aetherys-zoom-precision.md) beschrieben. Die kleine
+Präzisionskorrektur an der Bildschirmumrechnung hebt die bestehende UI-Grenze
+von 640× (Print-Size-Preset-Ausnahme: 853⅓×) nicht an. Hohe synthetische Testfaktoren sind kein Nachweis für vollständig
+hausgenaues interaktives Bearbeiten. Die oben festgelegten langfristigen
+Produktziele und die dafür noch erforderlichen Maßnahmen bleiben bestehen.
