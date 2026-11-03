@@ -279,9 +279,7 @@ pub(crate) fn params(d: &Dialog) -> (&'static str, Value) {
         p.insert("preview".into(), json!(d.bool("preview")));
         p.insert("dimImages".into(), if d.bool("dimImages") { json!(d.f64("dimPercent", 50.0).clamp(0.0, 100.0)) } else { json!(false) });
         if d.bool("worldMap") {
-            let range = |flag: &str, start: &str, end: &str| {
-                d.bool(flag).then(|| [d.f64(start, 200.0), d.f64(end, 500.0)])
-            };
+            let range = |flag: &str, start: &str, end: &str| d.bool(flag).then(|| [d.f64(start, 200.0), d.f64(end, 500.0)]);
             let fade = d.bool("zoomFadeEnabled").then(|| {
                 json!({
                     "fade_in": range("fadeInEnabled", "fadeInStart", "fadeInEnd"),
