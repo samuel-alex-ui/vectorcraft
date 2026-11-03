@@ -228,6 +228,58 @@ pub fn hit_test(doc: &Document, p: Point, opt: HitOptions) -> Option<Hit> {
     hit_test_skipping(doc, p, opt, &|_| false, true)
 }
 
+/// An invisible geographic detail layer (including ancestors) must not intercept a canvas
+/// selection. This is a view policy; the actual Node::visible flag stays unchanged.
+fn hidden_by_zoom(doc: &Document, id: NodeId, zoom: f64) -> bool {
+    doc.world_map.is_some()
+        && doc.ancestry(id).is_some_and(|ids| {
+            ids.into_iter().filter_map(|id| doc.node(id)).any(|n| {
+                n.is_layer() && n.extras().zoom_fade.is_some_and(|f| f.opacity(zoom) <= 0.0)
+            })
+        })
+}
+
+/// Select what the world-map canvas actually shows, ignoring fully faded detail layers.
+/// Other document types retain the original hit-test behaviour.
+pub fn hit_test_at_zoom(doc: &Document, p: Point, opt: HitOptions, zoom: f64) -> Option<Hit> {
+    if doc.world_map.is_none() {
+        return hit_test(doc, p, opt);
+    }
+    hit_test_skipping(
+        doc,
+        p,
+        opt,
+        &|id| doc.node(id).is_some_and(|n| n.is_layer() && n.extras().zoom_fade.is_some_and(|f| f.opacity(zoom) <= 0.0)),
+        true,
+    )
+}
+
+/// Select Behind and marquee results also exclude visually absent geographic layers.
+pub fn objects_at_zoom(doc: &Document, p: Point, opt: HitOptions, scope: Option<NodeId>, zoom: f64) -> Vec<NodeId> {
+    let mut ids = objects_at(doc, p, opt, scope);
+    if doc.world_map.is_some() {
+        ids.retain(|id| !hidden_by_zoom(doc, *id, zoom));
+    }
+    ids
+}
+
+pub fn marquee_at_zoom(doc: &Document, r: Rect, scope: Option<NodeId>, leaves: bool, zoom: f64) -> Vec<NodeId> {
+    let mut ids = marquee(doc, r, scope, leaves);
+    if doc.world_map.is_some() {
+        ids.retain(|id| !hidden_by_zoom(doc, *id, zoom));
+    }
+    ids
+}
+
+pub fn selected_hidden_at_zoom(doc: &Document, p: Point, opt: HitOptions, selected: &[NodeId], zoom: f64) -> Option<NodeId> {
+    if doc.world_map.is_some() {
+        let visible: Vec<NodeId> = selected.iter().copied().filter(|id| !hidden_by_zoom(doc, *id, zoom)).collect();
+        selected_hidden_at(doc, p, opt, &visible)
+    } else {
+        selected_hidden_at(doc, p, opt, selected)
+    }
+}
+
 /// Topmost visible art for read-only sampling: locked objects and template layers participate,
 /// including art outside the editing scope. This never changes their editability.
 pub fn hit_test_visible(doc: &Document, p: Point, opt: HitOptions) -> Option<Hit> {
@@ -522,7 +574,7 @@ fn hit_test_skipping(doc: &Document, p: Point, opt: HitOptions, skip: &dyn Fn(No
     }
     let mut chain = Vec::new();
     for layer in doc.layers.iter().rev() {
-        if !layer.visible || editable_only && (layer.locked || layer.is_template()) {
+        if skip(layer.id) || !layer.visible || editable_only && (layer.locked || layer.is_template()) {
             continue;
         }
         // Pattern editing mode: only the tile art is editable.
