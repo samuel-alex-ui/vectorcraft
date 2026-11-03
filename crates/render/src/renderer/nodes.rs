@@ -39,7 +39,7 @@ impl Renderer {
             }
             _ => brush_fx::cull_bounds(symbols, a),
         };
-        self.geom.insert(key, GeomEntry { node: a.clone(), bounds: b, path: None, stamp: self.stamp });
+        self.geom.insert(key, GeomEntry { node: a.clone(), bounds: b, path: None, spatial: None, stamp: self.stamp });
         b
     }
 
@@ -116,7 +116,7 @@ impl Renderer {
         }
         let p = Arc::new(a.stroke_path()?);
         let bounds = self.bounds_of(symbols, a);
-        self.geom.insert(key, GeomEntry { node: a.clone(), bounds, path: Some(p.clone()), stamp: self.stamp });
+        self.geom.insert(key, GeomEntry { node: a.clone(), bounds, path: Some(p.clone()), spatial: None, stamp: self.stamp });
         Some(p)
     }
 
@@ -420,7 +420,11 @@ impl Renderer {
                 self.draw_trace_view(ctx, f, children, Self::trace_view(f, n), knockout)
             }
             NodeKind::Layer { children, clip: false, .. } | NodeKind::Group { children, clip: false } => {
-                self.draw_children(ctx, f, children, knockout)
+                if f.doc.world_map.is_some() && children.len() >= 128 && !knockout && self.isolation_path(f).is_none() {
+                    self.draw_spatial_children(ctx, f, n, children);
+                } else {
+                    self.draw_children(ctx, f, children, knockout);
+                }
             }
             NodeKind::Group { children, clip: true } | NodeKind::Layer { children, clip: true, .. } if f.opts.outline => {
                 for c in children {
@@ -602,6 +606,36 @@ impl Renderer {
         let outer = self.fx_owner.replace(c.clone());
         self.draw_kept_node(ctx, f, c);
         self.fx_owner = outer;
+    }
+
+    /// A world-map group's bounds-indexed fast path. Only plain, un-clipped, non-knockout
+    /// groups without isolation-mode dimming use this; special groups retain their old path.
+    /// The immutable parent Arc shares its lifetime with the bounds cache entry, which is
+    /// invalidated automatically when the document's child list changes.
+    fn draw_spatial_children(&mut self, ctx: &mut RenderContext, f: &Frame, parent: &Node, children: &[Arc<Node>]) {
+        let key = parent as *const Node as usize;
+        let cached = self.geom.get(&key).is_some_and(|entry| std::ptr::eq(Arc::as_ptr(&entry.node), parent));
+        if !cached {
+            // This can be a temporary effect evaluation rather than a document Arc.
+            return self.draw_children(ctx, f, children, false);
+        }
+        if self.geom.get(&key).is_some_and(|entry| entry.spatial.is_none()) {
+            let bounds = children.iter().enumerate().map(|(i, child)| (i, self.bounds_of(f.symbols, child))).collect::<Vec<_>>();
+            let index = crate::spatial::SpatialIndex::new(bounds, children.len());
+            if let Some(entry) = self.geom.get_mut(&key) {
+                entry.spatial = Some(index);
+                self.stats.spatial_indices_built += 1;
+            }
+        }
+        let pad = f.px * 2.0;
+        let view = f.visible.inflate(pad, pad);
+        let Some(indices) = self.geom.get(&key).and_then(|entry| entry.spatial.as_ref()).map(|index| index.candidates(view)) else {
+            return self.draw_children(ctx, f, children, false);
+        };
+        self.stats.spatial_nodes_skipped += children.len().saturating_sub(indices.len());
+        for i in indices {
+            self.draw_arc(ctx, f, &children[i]);
+        }
     }
 
     /// The children of a group: as the elements of a knockout group when `knockout`.
