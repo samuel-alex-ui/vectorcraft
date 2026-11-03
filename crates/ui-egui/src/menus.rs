@@ -12,7 +12,6 @@ use vectorcraft_engine::cmd::fileio::SaveMode;
 use crate::VectorcraftApp;
 use crate::io;
 use crate::panels::character::Face;
-use crate::state::next_zoom;
 use crate::theme::{Brightness, Tokens};
 use crate::widgets;
 

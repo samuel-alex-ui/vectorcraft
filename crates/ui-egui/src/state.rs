@@ -9,6 +9,9 @@ use crate::theme::Brightness;
 /// Per-document view (camera).
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct View {
+    /// Document-scoped navigation policy, rebuilt from document metadata.
+    #[serde(default)]
+    pub world_map: bool,
     /// Screen points per document point (1.0 = 100%).
     pub zoom: f64,
     /// Document point at the centre of the canvas.
@@ -29,22 +32,42 @@ pub struct View {
 
 impl Default for View {
     fn default() -> Self {
-        Self { zoom: 1.0, center: Point::new(306.0, 396.0), fitted: false, rotation: 0.0, artboard: 0, outline: false }
+        Self { world_map: false, zoom: 1.0, center: Point::new(306.0, 396.0), fitted: false, rotation: 0.0, artboard: 0, outline: false }
     }
 }
 
 impl View {
     /// The view a document opens at: the one it was saved with, else fitted on first display.
     pub fn of(st: &vectorcraft_engine::DocState) -> Self {
-        st.view.as_ref().and_then(Self::saved).unwrap_or_default()
+        let world = st.doc.world_map.is_some();
+        let mut view = st.view.as_ref().and_then(|v| Self::saved_for(v, world)).unwrap_or_default();
+        view.world_map = world;
+        view
     }
 
     /// The view `v` saved (the one a document was saved with, or a View → New View… one), within
     /// the zoom range; `None` when the canvas can't show it (a zoom or centre that isn't finite, a
     /// zoom of 0 or less).
     pub fn saved(v: &vectorcraft_engine::doc::SavedView) -> Option<Self> {
+        Self::saved_for(v, false)
+    }
+
+    pub fn max_zoom(&self) -> f64 {
+        if self.world_map { 1_000_000.0 } else { 640.0 }
+    }
+
+    pub fn next_zoom(&self, up: bool) -> f64 {
+        if self.world_map && (self.zoom >= 640.0 || (!up && self.zoom > 320.0)) {
+            return (self.zoom * if up { 2.0 } else { 0.5 }).clamp(0.0313, self.max_zoom());
+        }
+        let z = next_zoom(self.zoom, up);
+        if self.world_map { z.min(self.max_zoom()) } else { z }
+    }
+
+    pub fn saved_for(v: &vectorcraft_engine::doc::SavedView, world_map: bool) -> Option<Self> {
         v.is_usable().then(|| Self {
-            zoom: v.zoom.clamp(0.0313, 640.0),
+            world_map,
+            zoom: v.zoom.clamp(0.0313, if world_map { 1_000_000.0 } else { 640.0 }),
             center: v.center,
             fitted: true,
             rotation: if v.rotation.is_finite() { v.rotation } else { 0.0 },

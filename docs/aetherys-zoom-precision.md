@@ -1,9 +1,9 @@
 # Aetherys — Zoom and coordinate precision (Phase 1.3)
 
-**Status:** bounded precision improvement and targeted tests, 2026-11-03.
+**Status:** Phase 1.4 enables world-map navigation to 1,000,000×. The Phase 1.3 audit below is historical baseline. Updated 2026-11-03.
 Product goals remain those of [the project guide](aetherys-project-guide.md).
 
-## Current limits, from the code
+## Phase 1.3 baseline limits (world-map changes: Phase 1.4 below)
 
 | Path | Current behaviour / limit |
 |---|---|
@@ -113,3 +113,75 @@ No tiles, new LOD system, map layers or globe are introduced in this phase.
 | Date | Change |
 |---|---|
 | 2026-11-03 | Phase 1.3: source audit, final-boundary rounding, targeted large-factor tests and explicit remaining limits. |
+
+## Phase 1.4 — world-map navigation (2026-11-03)
+
+World-map views now derive a 1,000,000× ceiling from `Document::world_map`.
+The per-view policy is refreshed from document metadata, not inferred from title
+or canvas size. Ordinary documents retain their old limits and Print Size
+exception. Wheel/trackpad and animated zoom use `zoom_about`; click Zoom Tool,
+marquee zoom, menu/keyboard steps, direct percentage entry, Navigator's slider
+and saved-view restoration use the world-map ceiling. Above the old presets,
+world-map steps double/halve the factor. Percent fields use the existing Print
+Size baseline: 1,000,000× means 100,000,000% with the default baseline.
+
+Fit Artboard/All/Selection still use the existing fit policy (including its
+640× ceiling and one-document-point minimum target extent). They are not the
+route to house-scale zoom in this core implementation. Use direct zoom, wheel,
+Zoom Tool or Navigator instead. There is no new renderer or LOD system. Dense
+maps, all effects, pen/direct-anchor editing, HiDPI and real gesture-device QA
+still require broader validation; simple vector drawing/selection/movement
+checks do not certify every tool at every scale.
+
+### Local macOS application
+
+Package the **existing** release binary without compiling:
+
+```bash
+bash packaging/macos/aetherys-app.sh
+```
+
+For future source updates, build once and repackage:
+
+```bash
+bash packaging/macos/aetherys-app.sh --build
+open "dist/Aetherys World Editor.app"
+```
+
+The Finder app executes the copied native binary directly: no Cargo invocation,
+Rust installation or compilation at launch. The script reuses the upstream
+Info.plist, document associations, icon and entitlements. It ad-hoc signs and
+verifies the local bundle; redistribution to other Macs still needs the
+upstream signed/notarized release process. It does not rename all VectorCraft
+UI strings or create an independent preference/document format. Packaging an
+old release binary does not update its code: use `--build` for the new zoom.
+
+### Relocated repository
+
+The stale contributor paths came from `env!("CARGO_MANIFEST_DIR")` embedded in
+the cached UI build-script executable. Read Cargo's current runtime manifest
+directory instead; contributor inputs remain relative to the crate. No user
+home path is embedded in source and no global `cargo clean` is necessary.
+
+
+Phase 1.4 checks performed: seven `zoom_precision` integration tests passed,
+including rectangle pointer drawing, selection, movement and Undo with a
+1,000,000× tool context; full UI-target Clippy with `-D warnings` passed;
+UI library WASM check passed (existing renderer warning). Normal-document
+limits, Print Size behaviour, high-factor projection and simple rendering
+remain covered. No full workspace CI or dense-scene benchmark was run.
+The package-only path was Plist-linted, ad-hoc signature verified, launched via
+LaunchServices (`open -n`) and visually inspected through a control screenshot.
+`bash packaging/macos/aetherys-app.sh --build` completed successfully (one
+release build). The updated app was launched through LaunchServices; control
+inspection confirmed `world_map: true` and `zoom: 1000000.0`, and a screenshot
+confirmed a small filled rectangle at that scale. Plist and signature checks
+passed; linked libraries were macOS system libraries/frameworks.
+
+Observed interaction limits: a default 1 pt stroke becomes enormous at this
+scale, obscuring a small object's fill. Use None or an appropriately small
+stroke before drawing houses; defaults are not silently rescaled. Properties
+still rounds tiny point dimensions to `0 pt` visually even though f64 geometry
+is retained. Detailed numeric-field presentation and complete anchor/pen-tool
+coverage remain follow-up work. Basic pointer drawing/selection/movement and
+Undo passed, with saved-view restoration also exercised through `view.goto1`.

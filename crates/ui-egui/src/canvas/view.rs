@@ -89,7 +89,7 @@ pub(crate) fn actual_size_zoom(display_print_size: bool) -> f64 {
 /// point under screen point `p` where it is.
 pub(super) fn zoom_about(vm: &mut View, rect: egui::Rect, p: Pos2, zoom: f64) {
     let before = Xf::new(rect, vm).to_doc(p);
-    vm.zoom = zoom.clamp(0.0313, 640.0);
+    vm.zoom = zoom.clamp(0.0313, vm.max_zoom());
     vm.center += before - Xf::new(rect, vm).to_doc(p);
 }
 

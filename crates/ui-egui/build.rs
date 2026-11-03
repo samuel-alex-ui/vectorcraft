@@ -12,7 +12,10 @@ use std::fmt::Write as _;
 use serde_json::Value;
 
 fn main() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contributors");
+    // Cargo compiles build scripts with env! values embedded in their binary.
+    // A moved target cache must use the current invocation's manifest directory.
+    let dir = std::env::var_os("CARGO_MANIFEST_DIR").map(std::path::PathBuf::from).unwrap_or_else(|| ".".into()).join("../../contributors");
+    println!("cargo::rerun-if-env-changed=CARGO_MANIFEST_DIR");
     let json = read(&dir.join("contributors.json"), "the About window shows no contributors", |t| {
         serde_json::from_str::<Value>(t).map_err(|e| e.to_string())
     })
