@@ -632,9 +632,15 @@ impl Renderer {
         let Some(indices) = self.geom.get(&key).and_then(|entry| entry.spatial.as_ref()).map(|index| index.candidates(view)) else {
             return self.draw_children(ctx, f, children, false);
         };
+        // A stale or corrupted index must never crash a document or omit its art.
+        if indices.iter().any(|i| *i >= children.len()) {
+            return self.draw_children(ctx, f, children, false);
+        }
         self.stats.spatial_nodes_skipped += children.len().saturating_sub(indices.len());
         for i in indices {
-            self.draw_arc(ctx, f, &children[i]);
+            if let Some(child) = children.get(i) {
+                self.draw_arc(ctx, f, child);
+            }
         }
     }
 
