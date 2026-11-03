@@ -845,3 +845,16 @@ fn a_failed_preview_is_not_journaled_at_commit() {
     s.commit_interaction().unwrap();
     assert_eq!(s.journal.len(), journal);
 }
+
+#[test]
+fn world_map_creation_replays_geography_and_creation_time() {
+    let mut s = Session::new();
+    s.execute("file.newWorldMap", &json!({"created": 1_234_567_890})).unwrap();
+    let mut replay = Session::new();
+    for (id, p) in &s.journal {
+        replay.execute(id, p).unwrap();
+    }
+    assert_eq!(created(&s), created(&replay));
+    assert_eq!(s.doc().unwrap().doc.world_map, replay.doc().unwrap().doc.world_map);
+    assert_eq!(created(&replay), Some(1_234_567_890));
+}

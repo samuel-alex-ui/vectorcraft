@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-13 · **Change:** minor (shared PDF reader and writer; app output policy and editable-import adapter retained; verified PngSuite downloads, #1729; synthetic control-input budgets, #1709; desktop printing uses craft-print) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys Phase 1.2 geographic document metadata; parity scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 How VectorCraft is built today. The design rationale lives in the local, gitignored `plan/architecture.md`;
 this file describes what is committed. Day-to-day rules (clean-room, never crash, quality gates) are in
@@ -19,7 +19,7 @@ nothing below L6 depends on a UI toolkit (egui, eframe, winit, rfd). Table: `xta
 
 | Layer | Crates | Role |
 |---|---|---|
-| L0 | `geom`, `color`; `affinity` (standalone, no workspace deps) | curves and transforms (on `kurbo`), colour models, ICC and conversions; the Affinity reader |
+| L0 | `geom`, `color`, `worldmap` (independent geographic projection); `affinity` (standalone, no workspace deps) | curves and transforms (on `kurbo`), colour models, ICC and conversions; the Affinity reader |
 | L1 | `doc` | the document model: artboards, layers, objects, appearance, text, symbols; pure data + serde, structural sharing |
 | L2 | `pathops`, `brush`, `trace`, `text`, `effects`, `plugins`, `three-d` | booleans/Shape Builder/offset/outline; brushes; Image Trace; fonts, shaping (HarfRust, skrifa), bidi and layout; live effects and the pixel-filter pipeline; sandboxed WebAssembly plug-ins (wasmi); 3D surfaces of revolution, projection and shading (`three-d`, on `geom` only) |
 | L3 | `render`, `svg`, `pdf`, `format`, `eps`, `cad`, `metafile` | document to pixels (`vello_cpu`, multithreaded); SVG, PDF, native JSON, EPS/PostScript (with its own interpreter), DXF, EMF/WMF readers and writers |
@@ -88,6 +88,7 @@ saves copies in the background. See [development.md](development.md#robustness-v
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-03 | minor | Aetherys Phase 1.2: L0 worldmap → L1 doc; optional validated metadata and engine creation command. |
 | 2026-10-13 | minor | Pinned PngSuite HTTPS files verified by SHA-256 before publication; bounded downloads replace archive extraction (#1729). Scores and hours unchanged. |
 | 2026-10-13 | minor | Bounded synthetic control input (#1709): counts and queued events validated before mutation; control-channel bursts yield between frames. Scores and hours unchanged. |
 | 2026-10-13 | minor | PDF.R1: editable PDF import uses the shared pinned reader; layer and overprint scans preserve state across content windows and reject known incomplete input. Synthetic streaming, decoder-limit and dependency-source regressions added; scores and hours unchanged. |
@@ -95,3 +96,10 @@ saves copies in the background. See [development.md](development.md#robustness-v
 | 2026-10-12 | minor | Desktop PDF spooler shared through craft-print; exact physical sizes, composed copies and Windows 7 fallback retained. Scores and remaining gaps unchanged. |
 | 2026-10-10 | minor | Added the `three-d` crate |
 | 2026-10-10 | major | First version, from the workspace, the layering table and the existing docs |
+
+## Aetherys geographic documents (2026-11-03)
+
+The optional typed `Document::world_map` mapping identifies world maps and is
+validated on deserialize. Existing vector node geometry remains authoritative;
+longitude/latitude are derived, without a second object store. Its reference
+rectangle is independent of artboard edits. See [the phase 1.2 decisions](aetherys-world-map.md#phase-12-persistent-geographic-document-model).
