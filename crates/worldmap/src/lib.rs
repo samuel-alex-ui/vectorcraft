@@ -100,6 +100,53 @@ impl WorldMap {
         }
         Ok(GeographicPoint { longitude_deg: p.x / self.width * 360.0 - 180.0, latitude_deg: 90.0 - p.y / self.height * 180.0 })
     }
+
+    /// Project a geographic open polyline without connecting across the flat map's seam.
+    ///
+    /// A longitude jump larger than 180 degrees follows the shorter arc over the
+    /// antimeridian. The line is split into two independent canvas polylines at
+    /// x=0 and x=width, with linearly interpolated latitude at the crossing.
+    /// This is intentionally for *open polylines*: filled polygons require a
+    /// separate topology-aware clipping algorithm to preserve their fill rule.
+    /// The original points are not changed or duplicated in the document.
+    pub fn project_seamless_polyline(&self, points: &[GeographicPoint]) -> Result<Vec<Vec<CanvasPoint>>, MapError> {
+        let Some(first) = points.first().copied() else { return Ok(Vec::new()) };
+        let mut current = vec![self.project(first)?];
+        let mut result = Vec::new();
+        for pair in points.windows(2) {
+            let (from, to) = (pair[0], pair[1]);
+            let endpoint = self.project(to)?;
+            let delta = to.longitude_deg - from.longitude_deg;
+            if delta.abs() <= 180.0 {
+                current.push(endpoint);
+                continue;
+            }
+            // +180 and -180 refer to the same meridian. There is no line to
+            // draw between the opposing *flat* edges in that degenerate case.
+            if delta.abs() == 360.0 {
+                if current.len() > 1 {
+                    result.push(std::mem::take(&mut current));
+                }
+                current = vec![endpoint];
+                continue;
+            }
+            let eastward = delta < 0.0;
+            let wrapped_end = to.longitude_deg + if eastward { 360.0 } else { -360.0 };
+            let seam = if eastward { 180.0 } else { -180.0 };
+            let t = ((seam - from.longitude_deg) / (wrapped_end - from.longitude_deg)).clamp(0.0, 1.0);
+            let latitude = from.latitude_deg + t * (to.latitude_deg - from.latitude_deg);
+            let y = (90.0 - latitude) / 180.0 * self.height;
+            current.push(CanvasPoint { x: if eastward { self.width } else { 0.0 }, y });
+            if current.len() > 1 {
+                result.push(std::mem::take(&mut current));
+            }
+            current = vec![CanvasPoint { x: if eastward { 0.0 } else { self.width }, y }, endpoint];
+        }
+        if current.len() > 1 || points.len() == 1 {
+            result.push(current);
+        }
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
