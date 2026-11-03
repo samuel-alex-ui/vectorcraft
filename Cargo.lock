@@ -6604,6 +6604,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "vectorcraft-worldmap"
+version = "0.21.0"
+
+[[package]]
 name = "vello_common"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
