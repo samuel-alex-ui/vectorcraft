@@ -59,10 +59,7 @@ fn zoom_fields(fields: &mut serde_json::Map<String, Value>, fade: Option<ZoomFad
     fields.insert("fadeOutEnabled".into(), json!(fade.is_some_and(|f| f.fade_out.is_some())));
     let inside = fade.and_then(|f| f.fade_in).unwrap_or([200.0, 500.0]);
     let outside = fade.and_then(|f| f.fade_out).unwrap_or([2000.0, 5000.0]);
-    for (key, value) in [
-        ("fadeInStart", inside[0]), ("fadeInEnd", inside[1]),
-        ("fadeOutStart", outside[0]), ("fadeOutEnd", outside[1]),
-    ] {
+    for (key, value) in [("fadeInStart", inside[0]), ("fadeInEnd", inside[1]), ("fadeOutStart", outside[0]), ("fadeOutEnd", outside[1])] {
         fields.insert(key.into(), json!(value));
     }
 }
@@ -120,10 +117,10 @@ pub fn open_new(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
         "mode": if sublayer { "newSublayer" } else { "new" }, "layer": true, "name": name, "color": color_field(color),
         "template": false, "locked": false, "visible": true, "printable": true, "preview": true, "dimImages": false, "dimPercent": 50,
     });
-    if st.doc.world_map.is_some() {
-        if let Some(fields) = fields.as_object_mut() {
-            zoom_fields(fields, None);
-        }
+    if st.doc.world_map.is_some()
+        && let Some(fields) = fields.as_object_mut()
+    {
+        zoom_fields(fields, None);
     }
     app.ui.dialog = Some(Dialog::new(KIND, fields));
     Ok(Value::Null)
