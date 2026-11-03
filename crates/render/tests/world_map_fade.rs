@@ -7,11 +7,7 @@ use vectorcraft_geom::{Affine, Rect, shapes};
 use vectorcraft_render::{RenderOptions, Renderer};
 
 fn picture(doc: &Document, zoom: Option<f64>) -> [u8; 4] {
-    let opts = RenderOptions {
-        background: Some([255, 255, 255, 255]),
-        world_map_zoom: zoom,
-        ..Default::default()
-    };
+    let opts = RenderOptions { background: Some([255, 255, 255, 255]), world_map_zoom: zoom, ..Default::default() };
     Renderer::new().render(doc, 100, 100, Affine::IDENTITY, &opts).pixel(50, 50)
 }
 
@@ -20,8 +16,7 @@ fn world_map_layer_fades_without_mutating_stored_opacity() {
     let mut doc = Document::new(1000.0, 500.0);
     doc.world_map = Some(WorldMap::standard());
     let layer = doc.layers[0].id;
-    doc.node_mut(layer).unwrap().extras_mut().zoom_fade =
-        Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
+    doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
     let path = Node::path(
         doc.alloc_id(),
         shapes::rectangle(Rect::new(20.0, 20.0, 80.0, 80.0)),
