@@ -28,8 +28,7 @@ fn documents_without_zoom_fade_keep_original_serialization() {
     assert!(load(&saved).unwrap().layers[0].extras().zoom_fade.is_none());
     let mut ordinary = doc;
     let ordinary_layer = ordinary.layers[0].id;
-    ordinary.node_mut(ordinary_layer).unwrap().extras_mut().zoom_fade =
-        Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
+    ordinary.node_mut(ordinary_layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
     let raw = serde_json::to_value(&ordinary).unwrap();
     assert_eq!(raw["layers"][0]["zoom_fade"], json!({"fade_out":[200.0,500.0]}));
 }
