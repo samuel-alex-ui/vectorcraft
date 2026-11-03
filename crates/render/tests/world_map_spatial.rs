@@ -11,12 +11,14 @@ fn grid(count: usize) -> Document {
     let mut doc = Document::new(1000.0, 500.0);
     doc.world_map = Some(WorldMap::standard());
     let layer = doc.layers[0].id;
+    // Keep even the 8,192-object benchmark inside the geographic reference.
+    let (columns, spacing, size) = if count > 1024 { (128, 7.0, 6.0) } else { (32, 28.0, 20.0) };
     for i in 0..count {
-        let x = 7.0 + (i % 32) as f64 * 28.0;
-        let y = 7.0 + (i / 32) as f64 * 28.0;
+        let x = 7.0 + (i % columns) as f64 * spacing;
+        let y = 7.0 + (i / columns) as f64 * spacing;
         let paint = if i % 2 == 0 { Color::rgb(1.0, 0.0, 0.0) } else { Color::rgb(0.0, 0.3, 1.0) };
         let appearance = Appearance::basic(Paint::solid(paint), Paint::None, 0.0);
-        let n = Node::path(doc.alloc_id(), shapes::rectangle(Rect::new(x, y, x + 20.0, y + 20.0)), appearance);
+        let n = Node::path(doc.alloc_id(), shapes::rectangle(Rect::new(x, y, x + size, y + size)), appearance);
         doc.insert(Some(layer), 0, n).unwrap();
     }
     doc
