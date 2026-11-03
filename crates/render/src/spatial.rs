@@ -42,8 +42,8 @@ fn union(a: Rect, b: Rect) -> Rect {
 
 impl Branch {
     fn build(items: &mut [Item]) -> Self {
-        let mut bounds = items[0].bounds;
-        for item in &items[1..] {
+        let mut bounds = items.first().map_or(Rect::new(0.0, 0.0, 0.0, 0.0), |item| item.bounds);
+        for item in items.iter().skip(1) {
             bounds = union(bounds, item.bounds);
         }
         if items.len() <= LEAF_SIZE {
@@ -98,6 +98,7 @@ impl SpatialIndex {
             root.query(viewport, &mut out);
         }
         out.sort_unstable();
+        out.dedup();
         out
     }
 }
