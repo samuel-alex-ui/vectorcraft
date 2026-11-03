@@ -233,9 +233,7 @@ pub fn hit_test(doc: &Document, p: Point, opt: HitOptions) -> Option<Hit> {
 fn hidden_by_zoom(doc: &Document, id: NodeId, zoom: f64) -> bool {
     doc.world_map.is_some()
         && doc.ancestry(id).is_some_and(|ids| {
-            ids.into_iter().filter_map(|id| doc.node(id)).any(|n| {
-                n.is_layer() && n.extras().zoom_fade.is_some_and(|f| f.opacity(zoom) <= 0.0)
-            })
+            ids.into_iter().filter_map(|id| doc.node(id)).any(|n| n.is_layer() && n.extras().zoom_fade.is_some_and(|f| f.opacity(zoom) <= 0.0))
         })
 }
 
@@ -1023,8 +1021,7 @@ mod geographic_fade_tests {
         let mut doc = Document::new(1000.0, 500.0);
         doc.world_map = Some(WorldMap::standard());
         let layer = doc.layers[0].id;
-        doc.node_mut(layer).unwrap().extras_mut().zoom_fade =
-            Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
+        doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
         let shape = Node::path(
             doc.alloc_id(),
             shapes::rectangle(Rect::new(20.0, 20.0, 80.0, 80.0)),

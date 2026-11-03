@@ -81,11 +81,7 @@ mod tests {
         for range in [[0.0, 2.0], [2.0, 2.0], [3.0, 2.0], [f64::NAN, 2.0], [1.0, f64::INFINITY]] {
             assert!(ZoomFade::new(Some(range), None).is_err());
         }
-        for bad in [
-            serde_json::json!({"fade_in": [200, 100]}),
-            serde_json::json!({"fade_out": [-1, 10]}),
-            serde_json::json!({"fade_out": [1, 1]}),
-        ] {
+        for bad in [serde_json::json!({"fade_in": [200, 100]}), serde_json::json!({"fade_out": [-1, 10]}), serde_json::json!({"fade_out": [1, 1]})] {
             assert!(serde_json::from_value::<ZoomFade>(bad).is_err());
         }
     }
