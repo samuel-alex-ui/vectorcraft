@@ -390,8 +390,7 @@ fn zoom_fade_param(s: &Session, p: &Value, cmd: &str) -> Result<Option<Option<ve
     if value.is_null() {
         return Ok(Some(None));
     }
-    let fade: vectorcraft_doc::ZoomFade =
-        serde_json::from_value(value.clone()).map_err(|e| bad(cmd, format!("invalid zoomFade: {e}")))?;
+    let fade: vectorcraft_doc::ZoomFade = serde_json::from_value(value.clone()).map_err(|e| bad(cmd, format!("invalid zoomFade: {e}")))?;
     Ok(Some(Some(fade)))
 }
 
