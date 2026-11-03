@@ -152,3 +152,10 @@ license notices on reused VectorCraft code.
 | 2026-11-03 | Phase 1.4: document-scoped extreme zoom, local macOS bundle and relocatable build-script paths. |
 | 2026-11-03 | Phase 1.3: zoom/precision audit, bounded conversion fix and explicit high-zoom test scope. |
 | 2026-11-03 | Phase 1.2: explicit validated geographic metadata, engine creation command and native persistence tests. |
+
+
+## Phase 1.5: independent coastline details and smooth layer transitions (pending verification)
+
+Different geographic detail levels remain separate ordinary VectorCraft layers. An optional validated zoom-fade configuration on each world-map layer fades it in or out during the canvas view without changing stored geometry or opacity. Ordinary documents and default export rendering are unchanged. The user can adjust the ranges through existing Layer Options. See [world-map layer fading](aetherys-zoom-fade.md) for usage, limits and tests.
+
+This branch is pending local Rust compilation and review; no successful build/test outcome is claimed here.
