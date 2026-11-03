@@ -1,6 +1,6 @@
 # File format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-01 · **Change:** minor (native format: dynamic symbols, #4938) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys Phase 1.2 geographic document metadata; parity scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 Every format Illustrator opens, places, saves or exports, against VectorCraft's format table (`FORMATS`,
 `OPEN_EXTS`, `PLACE_EXTS` in `crates/engine/src/cmd/fileio/formats.rs`). Illustrator's list comes from its public
@@ -278,3 +278,15 @@ Synthetic regressions: `tests::save::opened_eps_saves_to_its_own_file_with_edita
 `eps_save_bounds_large_page_preview_without_cropping_vector_or_editing_data`, and the UI regressions
 `file_save_writes_opened_eps_back_without_another_save_as_dialog` and
 `eps_save_as_keeps_page_options_and_writes_eps_without_export_only_switches`.
+
+## Aetherys Phase 1.2 (2026-11-03)
+
+Optional validated geographic metadata persists in native documents; regular
+documents default to no map. This VectorCraft extension does not change
+Illustrator parity scores, missing items or hour estimates. Evidence and
+architecture: [Aetherys world maps](aetherys-world-map.md#phase-12-persistent-geographic-document-model),
+`crates/format/tests/world_map.rs`, and engine `world_map_tests`.
+
+| Date | Change | Summary |
+|---|---|---|
+| 2026-11-03 | minor | Aetherys 1.2 geographic document persistence; parity scores/hours unchanged. |

@@ -321,3 +321,14 @@ fn saved_views_round_trip_and_from_a_file_are_tidied() {
     v["document"]["views"] = json!([{"name": 5, "center": "x", "zoom": "big"}]);
     assert!(load(&serde_json::to_vec(&v).unwrap()).is_err());
 }
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 64, failure_persistence: None, ..ProptestConfig::default() })]
+    #[test]
+    fn world_map_metadata_roundtrips(width in 1.0f64..100_000.0, radius in 1.0f64..1.0e10) {
+        let mut doc = Document::new(width, width / 2.0);
+        doc.world_map = Some(vectorcraft_doc::WorldMap::new(width, width / 2.0).unwrap().with_planet_radius_m(radius).unwrap());
+        let restored = load(&save(&doc, false)).unwrap();
+        prop_assert_eq!(restored.world_map, doc.world_map);
+    }
+}

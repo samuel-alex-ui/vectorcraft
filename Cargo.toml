@@ -26,6 +26,7 @@ craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.
 # internal
 vectorcraft-geom = { path = "crates/geom" }
 vectorcraft-color = { path = "crates/color" }
+vectorcraft-worldmap = { path = "crates/worldmap" }
 vectorcraft-doc = { path = "crates/doc" }
 vectorcraft-pathops = { path = "crates/pathops" }
 vectorcraft-brush = { path = "crates/brush" }

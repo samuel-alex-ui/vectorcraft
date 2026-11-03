@@ -26,8 +26,9 @@ pub const FIT_ACTIVE_ARTBOARD: [&str; 2] = ["artboard.fitToArt", "artboard.fitTo
 /// (dates from the clock: `cmd::clock_date`; the artboards the app passes to the
 /// [`ON_ACTIVE_ARTBOARD`] and [`FIT_ACTIVE_ARTBOARD`] commands and to a batch; the view's center
 /// the app passes to Edit Symbol); an action leaves them out ([`Session::journal_for_action`]).
-const REPLAY_ONLY: [(&str, &str); 16] = [
+const REPLAY_ONLY: [(&str, &str); 17] = [
     ("file.new", "created"),
+    ("file.newWorldMap", "created"),
     ("document.save", "modified"),
     ("file.saveAs", "modified"),
     ("edit.pasteInPlace", "artboard"),

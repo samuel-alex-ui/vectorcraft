@@ -20,6 +20,7 @@ impl Document {
         };
         let Self {
             version,
+            world_map,
             title,
             template,
             units,
@@ -74,7 +75,8 @@ impl Document {
             retired_artboard_id: _,
             index: _,
         } = self;
-        *version == other.version
+        *world_map == other.world_map
+            && *version == other.version
             && *title == other.title
             && *template == other.template
             && *units == other.units
@@ -186,6 +188,7 @@ impl Document {
         let (swatches, swatch_groups) = vectorcraft_color::default_swatches(mode.model());
         let mut d = Self {
             version: FORMAT_VERSION,
+            world_map: None,
             title: "Untitled-1".into(),
             template: false,
             units: Unit::Points,
@@ -788,5 +791,22 @@ impl Document {
             Some(NodeKind::Layer { color, .. }) => color.rgb(),
             _ => LAYER_COLORS[0].1,
         }
+    }
+}
+
+#[cfg(test)]
+mod world_map_tests {
+    use super::*;
+
+    #[test]
+    fn geography_participates_in_document_change_detection() {
+        let ordinary = Document::new(1000.0, 500.0);
+        let mut world = ordinary.clone();
+        world.world_map = Some(crate::WorldMap::standard());
+        assert!(!ordinary.same_outside_layers(&world));
+        assert!(world.same_outside_layers(&world.clone()));
+        let mut cropped = world.clone();
+        cropped.artboards[0].rect = Rect::new(10.0, 20.0, 200.0, 200.0);
+        assert_eq!(cropped.world_map, world.world_map);
     }
 }

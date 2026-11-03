@@ -29,7 +29,6 @@ fn open_titles(ctx: &egui::Context, titles: &[(egui::Rect, egui::Id)]) -> Vec<us
     (0..titles.len()).filter(|&i| egui::Popup::is_id_open(ctx, titles[i].1)).collect()
 }
 
-
 #[test]
 fn new_world_map_menu_command_creates_a_two_to_one_artboard() {
     let file = menu_tree().into_iter().find(|(label, _)| *label == "File").unwrap().1;
@@ -38,6 +37,7 @@ fn new_world_map_menu_command_creates_a_two_to_one_artboard() {
     let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
     app.run("file.newWorldMap", json!({})).unwrap();
     let doc = &app.session.active().unwrap().doc;
+    assert!(doc.world_map.is_some());
     assert_eq!(doc.title, "Aetherys World Map");
     assert_eq!(doc.artboards.len(), 1);
     assert_eq!(doc.artboards[0].rect.width(), 1000.0);

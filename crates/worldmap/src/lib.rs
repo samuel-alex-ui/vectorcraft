@@ -1,8 +1,8 @@
 //! Foundations for an editable equirectangular 2D world map.
 //!
 //! This module is deliberately independent of the VectorCraft document model.
-//! A geographic point is the source of truth; canvas positions are a projection
-//! used for editing. The same points can later be rendered on a globe.
+//! Vector objects retain their existing document-point geometry; this mapping
+//! derives geographic positions without maintaining a second geometry store.
 //!
 //! Coordinate convention: west = -180°, east = +180°, north = +90°,
 //! south = -90°. The antimeridian has two *display* edges (x=0 and x=width).
@@ -31,6 +31,7 @@ pub enum MapError {
     InvalidLongitude,
     InvalidLatitude,
     OutsideCanvas,
+    InvalidRadius,
 }
 
 impl std::fmt::Display for MapError {
@@ -42,28 +43,38 @@ impl std::fmt::Display for MapError {
 impl std::error::Error for MapError {}
 
 /// Full-planet equirectangular projection (Plate Carrée), 2:1 aspect ratio.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "MapData", into = "MapData")]
 pub struct WorldMap {
     width: f64,
     height: f64,
+    planet_radius_m: Option<f64>,
 }
 
 impl WorldMap {
     /// Reject non-finite, non-positive and non-2:1 artboards.
     pub fn new(width: f64, height: f64) -> Result<Self, MapError> {
-        if !width.is_finite()
-            || !height.is_finite()
-            || width <= 0.0
-            || height <= 0.0
-            || (width / 2.0 - height).abs() > height * 1e-9
-        {
+        if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 || (width / 2.0 - height).abs() > height * 1e-9 {
             return Err(MapError::InvalidDimensions);
         }
-        Ok(Self { width, height })
+        Ok(Self { width, height, planet_radius_m: None })
     }
 
     pub fn standard() -> Self {
-        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }
+        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT, planet_radius_m: None }
+    }
+
+    /// Optional spherical planet radius, in metres. No Earth-sized default is assumed.
+    pub fn planet_radius_m(&self) -> Option<f64> {
+        self.planet_radius_m
+    }
+
+    pub fn with_planet_radius_m(mut self, radius: f64) -> Result<Self, MapError> {
+        if !radius.is_finite() || radius <= 0.0 {
+            return Err(MapError::InvalidRadius);
+        }
+        self.planet_radius_m = Some(radius);
+        Ok(self)
     }
 
     pub fn size(&self) -> (f64, f64) {
@@ -79,27 +90,15 @@ impl WorldMap {
         if !p.latitude_deg.is_finite() || !(-90.0..=90.0).contains(&p.latitude_deg) {
             return Err(MapError::InvalidLatitude);
         }
-        Ok(CanvasPoint {
-            x: (p.longitude_deg + 180.0) / 360.0 * self.width,
-            y: (90.0 - p.latitude_deg) / 180.0 * self.height,
-        })
+        Ok(CanvasPoint { x: (p.longitude_deg + 180.0) / 360.0 * self.width, y: (90.0 - p.latitude_deg) / 180.0 * self.height })
     }
 
     /// Convert a position on the flat 2D map back to geographic coordinates.
     pub fn unproject(&self, p: CanvasPoint) -> Result<GeographicPoint, MapError> {
-        if !p.x.is_finite()
-            || !p.y.is_finite()
-            || p.x < 0.0
-            || p.x > self.width
-            || p.y < 0.0
-            || p.y > self.height
-        {
+        if !p.x.is_finite() || !p.y.is_finite() || p.x < 0.0 || p.x > self.width || p.y < 0.0 || p.y > self.height {
             return Err(MapError::OutsideCanvas);
         }
-        Ok(GeographicPoint {
-            longitude_deg: p.x / self.width * 360.0 - 180.0,
-            latitude_deg: 90.0 - p.y / self.height * 180.0,
-        })
+        Ok(GeographicPoint { longitude_deg: p.x / self.width * 360.0 - 180.0, latitude_deg: 90.0 - p.y / self.height * 180.0 })
     }
 }
 
@@ -152,5 +151,68 @@ mod tests {
         assert_eq!(west.longitude_deg, -180.0);
         assert_eq!(east.longitude_deg, 180.0);
         assert_eq!(west.latitude_deg, east.latitude_deg);
+    }
+}
+
+/// Explicit projection discriminator; unknown projections fail rather than being misinterpreted.
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum Projection {
+    Equirectangular,
+}
+
+// The full-world angular extent is defined by the projection contract, not duplicated
+// as independently mutable bounds. Canvas extent is fixed in document points at (0, 0).
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MapData {
+    projection: Projection,
+    width: f64,
+    height: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    planet_radius_m: Option<f64>,
+}
+
+impl TryFrom<MapData> for WorldMap {
+    type Error = MapError;
+
+    fn try_from(data: MapData) -> Result<Self, Self::Error> {
+        let map = Self::new(data.width, data.height)?;
+        match data.planet_radius_m {
+            Some(radius) => map.with_planet_radius_m(radius),
+            None => Ok(map),
+        }
+    }
+}
+
+impl From<WorldMap> for MapData {
+    fn from(map: WorldMap) -> Self {
+        Self { projection: Projection::Equirectangular, width: map.width, height: map.height, planet_radius_m: map.planet_radius_m }
+    }
+}
+
+#[cfg(test)]
+mod metadata_tests {
+    use super::*;
+
+    #[test]
+    fn metadata_is_validated_and_preserves_coordinates() {
+        let map = WorldMap::new(2000.0, 1000.0).unwrap().with_planet_radius_m(1234.5).unwrap();
+        let value = serde_json::to_value(map).unwrap();
+        assert_eq!(value["projection"], "equirectangular");
+        let restored: WorldMap = serde_json::from_value(value).unwrap();
+        assert_eq!(map, restored);
+        let point = GeographicPoint { longitude_deg: 73.0, latitude_deg: -42.0 };
+        assert_eq!(map.project(point), restored.project(point));
+        for radius in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(map.with_planet_radius_m(radius), Err(MapError::InvalidRadius));
+        }
+        for bad in [
+            serde_json::json!({"projection":"equirectangular","width":1000,"height":600}),
+            serde_json::json!({"projection":"equirectangular","width":1000,"height":500,"planet_radius_m":-1}),
+            serde_json::json!({"projection":"other","width":1000,"height":500}),
+        ] {
+            assert!(serde_json::from_value::<WorldMap>(bad).is_err());
+        }
     }
 }

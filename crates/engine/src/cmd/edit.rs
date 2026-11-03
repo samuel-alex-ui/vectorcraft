@@ -19,6 +19,15 @@ use crate::{Clipboard, EngineError, inspect};
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
+            "file.newWorldMap",
+            "New World Map…",
+            ["File"],
+            None,
+            "{created?: Unix seconds|null (default now)} create a full-world equirectangular document with persistent geographic metadata (1000 × 500 points)",
+            always,
+            super::newdoc::world_map_new
+        ),
+        cmd!(
             "file.new",
             "New…",
             ["File"],

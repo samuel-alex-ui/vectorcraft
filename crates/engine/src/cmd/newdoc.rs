@@ -596,6 +596,19 @@ const RECENT: usize = 12;
 
 /// `file.new`: a new document from a preset and/or explicit settings.
 pub(crate) fn file_new(s: &mut Session, p: &Value) -> Result<Value> {
+    file_new_with_map(s, p, false)
+}
+
+pub(crate) fn world_map_new(s: &mut Session, p: &Value) -> Result<Value> {
+    let (width, height) = vectorcraft_doc::WorldMap::standard().size();
+    let mut params = json!({"name": "Aetherys World Map", "width": width, "height": height, "units": "Points", "artboards": 1, "colorMode": "rgb", "backgroundContents": "white"});
+    if let Some(created) = p.get("created") {
+        params["created"] = created.clone();
+    }
+    file_new_with_map(s, &params, true)
+}
+
+fn file_new_with_map(s: &mut Session, p: &Value, world_map: bool) -> Result<Value> {
     const C: &str = "file.new";
     let base = match str_param(p, "preset") {
         Some(name) => find(s, name).ok_or_else(|| bad(C, format!("no preset called `{name}` (see file.newPresets)")))?,
@@ -609,6 +622,9 @@ pub(crate) fn file_new(s: &mut Session, p: &Value) -> Result<Value> {
         settings.name = "Custom".into();
     }
     let mut d = settings.document();
+    if world_map {
+        d.world_map = Some(vectorcraft_doc::WorldMap::standard());
+    }
     d.grid = s.prefs.grid();
     d.title = match str_param(p, "name").or(str_param(p, "title")).map(str::trim).filter(|t| !t.is_empty()) {
         // New Document offers the next untitled name: taking it uses it up.
@@ -677,4 +693,23 @@ fn delete(s: &mut Session, p: &Value) -> Result<Value> {
     let saved = &mut s.prefs.new_doc_presets;
     let i = saved.iter().position(|q| q.name.eq_ignore_ascii_case(name)).ok_or_else(|| bad(C, format!("no saved preset called `{name}`")))?;
     Ok(json!({ "deleted": saved.remove(i).name }))
+}
+
+#[cfg(test)]
+mod world_map_tests {
+    use super::*;
+
+    #[test]
+    fn world_map_command_creates_explicit_geography_and_regular_new_stays_regular() {
+        let mut s = Session::new();
+        s.execute("file.newWorldMap", &json!({})).unwrap();
+        let doc = &s.active().unwrap().doc;
+        assert_eq!(doc.title, "Aetherys World Map");
+        assert_eq!(doc.world_map, Some(vectorcraft_doc::WorldMap::standard()));
+        assert_eq!(doc.artboards.len(), 1);
+        assert_eq!(doc.artboards[0].rect.width(), 1000.0);
+        assert_eq!(doc.artboards[0].rect.height(), 500.0);
+        s.execute("file.new", &json!({"name":"Aetherys World Map", "width":1000,"height":500})).unwrap();
+        assert!(s.active().unwrap().doc.world_map.is_none());
+    }
 }

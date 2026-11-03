@@ -156,7 +156,7 @@ impl VectorcraftApp {
                 {
                     self.ui.status = w.to_string();
                 }
-                if id == "file.new" {
+                if matches!(id, "file.new" | "file.newWorldMap") {
                     self.ui.status.clear();
                     // New Document's Pixel preview mode (Overprint Preview is the engine's).
                     if v["previewMode"] == "pixel" {
