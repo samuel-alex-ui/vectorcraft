@@ -366,6 +366,36 @@ mod tests {
     }
 
     #[test]
+    fn world_map_layer_dialog_edits_zoom_fade_but_ordinary_dialog_does_not() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.newWorldMap", json!({})).unwrap();
+        let id = app.session.doc().unwrap().doc.layers[0].id;
+        app.run("ui.layerOptions", json!({"id":id.0})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().bool("worldMap"));
+        set(&mut app, "zoomFadeEnabled", json!(true));
+        set(&mut app, "fadeInEnabled", json!(false));
+        set(&mut app, "fadeOutEnabled", json!(true));
+        set(&mut app, "fadeOutStart", json!(200.0));
+        set(&mut app, "fadeOutEnd", json!(500.0));
+        let (_, p) = params(app.ui.dialog.as_ref().unwrap());
+        assert_eq!(p["zoomFade"], json!({"fade_in":null,"fade_out":[200.0,500.0]}));
+        super::super::confirm(&mut app).unwrap();
+        let fade = app.session.doc().unwrap().doc.node(id).unwrap().extras().zoom_fade.unwrap();
+        assert_eq!(fade.opacity(200.0), 1.0);
+        assert_eq!(fade.opacity(500.0), 0.0);
+        app.run("ui.layerOptions", json!({"id":id.0})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().bool("zoomFadeEnabled"));
+        assert!(app.ui.dialog.as_ref().unwrap().bool("fadeOutEnabled"));
+        app.ui.dialog = None;
+
+        let mut ordinary = app();
+        ordinary.run("ui.layerOptions", json!({})).unwrap();
+        let d = ordinary.ui.dialog.as_ref().unwrap();
+        assert!(!d.bool("worldMap"));
+        assert!(params(d).1.get("zoomFade").is_none());
+    }
+
+    #[test]
     fn new_layer_options_make_a_layer_and_objects_get_name_show_and_lock() {
         let mut app = app();
         app.run("ui.newLayer", json!({})).unwrap();
