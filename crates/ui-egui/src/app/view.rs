@@ -7,6 +7,9 @@ impl VectorcraftApp {
         self.views.truncate(docs.len());
         self.views.extend(docs.iter().skip(self.views.len()).map(View::of));
         for (view, doc) in self.views.iter_mut().zip(docs) {
+            view.world_map = doc.doc.world_map.is_some();
+        }
+        for (view, doc) in self.views.iter_mut().zip(docs) {
             view.artboard = view.artboard.min(doc.doc.artboards.len().saturating_sub(1));
         }
         // Undo can remove the Artboard tool's active or additionally selected boards. Repair only

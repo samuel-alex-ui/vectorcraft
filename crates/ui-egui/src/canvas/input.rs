@@ -443,16 +443,16 @@ fn drag_released(app: &mut VectorcraftApp, ui: &Ui, f: &Pointing, d: Drag, p: Po
                     // The marquee's center and its size on screen set the view, at any rotation.
                     vm.center = xf.to_doc(r.center());
                     let fill = (rect.width() / r.width()).min(rect.height() / r.height());
-                    vm.zoom = (xf.zoom * f64::from(fill)).clamp(0.0313, 640.0);
+                    vm.zoom = (xf.zoom * f64::from(fill)).clamp(0.0313, vm.max_zoom());
                 } else {
-                    zoom_about(vm, rect, p, crate::state::next_zoom(vm.zoom, !m.alt));
+                    zoom_about(vm, rect, p, vm.next_zoom(!m.alt));
                 }
             }
         }
         // A click (not held, not dragged) steps the zoom as with the marquee.
         Drag::ZoomScrub { held, moved: false, .. } if held <= HOLD_DELAY => {
             if let Some(vm) = app.view_mut() {
-                zoom_about(vm, rect, p, crate::state::next_zoom(vm.zoom, !m.alt));
+                zoom_about(vm, rect, p, vm.next_zoom(!m.alt));
             }
         }
         Drag::ZoomScrub { .. } => {}

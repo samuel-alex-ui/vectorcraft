@@ -263,17 +263,33 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         }
         let sw = (ui.available_width() - 30.0).max(40.0);
         let track = |_: f32| t.input_border;
-        let shown = widgets::SliderValue::field(zoom, 3.13..=64000.0, "%", 2);
-        if let (Some(v), phase) = widgets::color_slider_valued(ui, "nav-slider", tl!("Zoom"), Some(shown), zoom_to_slider(zoom) as f32, sw, &track)
-            && phase != widgets::Live::Idle
+        let max = app
+            .view()
+            .filter(|v| v.world_map)
+            .map_or(64000.0, |v| crate::state::zoom_display_percent(v.max_zoom(), app.session.prefs.display_print_size));
+        let to_slider = |z: f64| ((z.clamp(3.13, max)).ln() - 3.13f64.ln()) / (max.ln() - 3.13f64.ln());
+        let shown = widgets::SliderValue::field(zoom, 3.13..=max, "%", 2);
+        if let (Some(v), phase) = widgets::color_slider_valued(
+            ui,
+            "nav-slider",
+            tl!("Zoom"),
+            Some(shown),
+            (if max == 64000.0 { zoom_to_slider(zoom) } else { to_slider(zoom) }) as f32,
+            sw,
+            &track,
+        ) && phase != widgets::Live::Idle
         {
-            z = Some(slider_to_zoom(v as f64));
+            z = Some(if max == 64000.0 {
+                slider_to_zoom(f64::from(v))
+            } else {
+                (3.13f64.ln() + f64::from(v).clamp(0.0, 1.0) * (max.ln() - 3.13f64.ln())).exp()
+            });
         }
         if widgets::icon_button(ui, "dc-zoom-large", tl!("Zoom In"), false, 22.0).clicked() {
             app.run("view.zoomIn", json!({})).ok();
         }
         if let Some(z) = z {
-            app.run("view.setZoom", json!({"zoom": z.clamp(3.13, 64000.0)})).ok();
+            app.run("view.setZoom", json!({"zoom": z.clamp(3.13, max)})).ok();
         }
     });
 }

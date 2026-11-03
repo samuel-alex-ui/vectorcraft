@@ -3,7 +3,7 @@ use super::invoke::menu_dialog;
 use super::slots::{recent_slot, saved_selection_name, saved_selection_slot, saved_view, saved_view_slot};
 use super::state::{checked, selected_image};
 use super::ui_commands::UI_COMMANDS;
-use super::{Brightness, Face, SaveMode, Value, VectorcraftApp, io, json, next_zoom};
+use super::{Brightness, Face, SaveMode, Value, VectorcraftApp, io, json};
 
 /// Canonical panel id for `window.panel`: a dock tab's or an icon panel's id or display label,
 /// matched case-insensitively (`"Layers"`, `"swatches"`, `"Color Guide"`), or a library panel's id
@@ -216,7 +216,9 @@ fn run_ui_part3(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         }
         // A saved view: its zoom, centre and rotation, in the current window.
         id if saved_view_slot(id).is_some() => {
-            let saved = saved_view(app, id).and_then(|sv| crate::state::View::saved(sv).map(|to| (sv.name.clone(), to)));
+            let saved = saved_view(app, id).and_then(|sv| {
+                crate::state::View::saved_for(sv, app.session.active().is_some_and(|s| s.doc.world_map.is_some())).map(|to| (sv.name.clone(), to))
+            });
             match (saved, app.view_mut()) {
                 (Some((name, to)), Some(v)) => {
                     (v.center, v.zoom, v.rotation) = (to.center, to.zoom, to.rotation);
@@ -344,7 +346,7 @@ fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             let focus = if app.session.prefs.zoom_to_selection { app.selection_box().map(|b| b.center()) } else { None };
             match app.view_mut() {
                 Some(v) => {
-                    v.zoom = next_zoom(v.zoom, up);
+                    v.zoom = v.next_zoom(up);
                     if let Some(c) = focus {
                         v.center = c;
                     }
@@ -360,7 +362,7 @@ fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
                 p.get("center").and_then(Value::as_array).and_then(|a| Some(vectorcraft_geom::Point::new(a.first()?.as_f64()?, a.get(1)?.as_f64()?)));
             match app.view_mut() {
                 Some(v) => {
-                    v.zoom = z.clamp(0.0313, 640.0);
+                    v.zoom = z.clamp(0.0313, v.max_zoom());
                     v.fitted = true;
                     if let Some(c) = center {
                         v.center = c;

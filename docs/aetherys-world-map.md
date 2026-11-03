@@ -2,7 +2,7 @@
 
 This is an incremental feature branch, not a replacement for VectorCraft.
 
-> Status: Phase 1.2 persistent model; Phase 1.3 zoom/precision audit and bounded arithmetic improvement. Updated 2026-11-03.
+> Status: Phase 1.4 world-map zoom and local macOS bundle; Phase 1.2 persistent model and Phase 1.3 precision foundation. Updated 2026-11-03.
 
 ## Purpose
 
@@ -91,6 +91,13 @@ arithmetic and simple-vector rendering tests are deliberately distinct from
 supported interactive zoom. See [the technical limits and verification](aetherys-zoom-precision.md).
 The long-term building-scale editing goal remains unchanged.
 
+## Phase 1.4: world-map navigation and macOS bundle
+
+World-map navigation now permits 1,000,000× via document-scoped view policy;
+ordinary document limits remain unchanged. The local macOS packaging/update
+command is `bash packaging/macos/aetherys-app.sh --build`.
+See [supported paths, tests and remaining limits](aetherys-zoom-precision.md#phase-14--world-map-navigation-2026-11-03).
+
 ## Next implementation steps
 
 1. Add world-map object/layer conventions using existing vector nodes and IDs.
@@ -142,5 +149,6 @@ license notices on reused VectorCraft code.
 
 | Date | Change |
 |---|---|
+| 2026-11-03 | Phase 1.4: document-scoped extreme zoom, local macOS bundle and relocatable build-script paths. |
 | 2026-11-03 | Phase 1.3: zoom/precision audit, bounded conversion fix and explicit high-zoom test scope. |
 | 2026-11-03 | Phase 1.2: explicit validated geographic metadata, engine creation command and native persistence tests. |

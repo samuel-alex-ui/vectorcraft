@@ -157,3 +157,14 @@ Präzisionskorrektur an der Bildschirmumrechnung hebt die bestehende UI-Grenze
 von 640× (Print-Size-Preset-Ausnahme: 853⅓×) nicht an. Hohe synthetische Testfaktoren sind kein Nachweis für vollständig
 hausgenaues interaktives Bearbeiten. Die oben festgelegten langfristigen
 Produktziele und die dafür noch erforderlichen Maßnahmen bleiben bestehen.
+
+
+## Technischer Stand Phase 1.4 (3. November 2026)
+
+Weltkarten-Navigation erlaubt nun bis 1.000.000×; normale Dokumente behalten
+ihre bisherigen Grenzen. Ein gezielter Rechteck-Werkzeugtest deckt Zeichnen,
+Auswählen, Verschieben und Undo ab. Das ist kein vollständiger Nachweis für
+alle Werkzeuge, Effekte oder große Szenen. Fit-Befehle bleiben vorerst begrenzt.
+Der [Prüfbericht](aetherys-zoom-precision.md) beschreibt Einschränkungen und den
+lokalen App-Update-Befehl `bash packaging/macos/aetherys-app.sh --build`.
+Die langfristigen Produktziele bleiben unverändert.
