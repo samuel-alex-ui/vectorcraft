@@ -5,6 +5,15 @@ use super::{
     shape_masked_image, single_plain_fill, text_geom_snapped, white_shape_mask,
 };
 
+// A layer fades as one composited group, preserving the stored opacity of every object.
+// Other document types and exports, where no view zoom is supplied, retain their appearance.
+fn zoom_opacity(f: &Frame, n: &Node) -> f32 {
+    if !n.is_layer() || f.doc.world_map.is_none() {
+        return 1.0;
+    }
+    f.opts.world_map_zoom.and_then(|zoom| n.extras().zoom_fade.map(|fade| fade.opacity(zoom))).unwrap_or(1.0)
+}
+
 impl Renderer {
     /// Cached cull bounds of a node (containers union their cached children), symbol instances
     /// measured by their art box from `symbols`.
@@ -130,7 +139,7 @@ impl Renderer {
     fn skipped(&mut self, f: &Frame, a: &Arc<Node>) -> bool {
         let skipped_view_item = (f.opts.skip_templates || f.opts.hide_templates) && matches!(a.kind, NodeKind::Layer { template: true, .. })
             || (f.opts.skip_templates || f.opts.hide_guides) && matches!(a.kind, NodeKind::Path { guide: true, .. });
-        if !a.visible || skipped_view_item || f.opts.hidden.contains(&a.id) || Self::edited_instance(f, a.id) {
+        if !a.visible || skipped_view_item || f.opts.hidden.contains(&a.id) || Self::edited_instance(f, a.id) || zoom_opacity(f, a) <= 0.0 {
             return true;
         }
         match self.bounds_of(f.symbols, a) {
@@ -385,7 +394,10 @@ impl Renderer {
             return self.draw_object_fx(ctx, f, &Arc::new(n.clone()), false);
         }
         let outline = f.opts.outline;
-        let opacity = self.opacity_of(n);
+        let opacity = self.opacity_of(n) * zoom_opacity(f, n);
+        if opacity <= 0.0 {
+            return;
+        }
         // Whether this container's children knock each other out.
         let knockout = !outline && n.knocks_out(self.knockout);
         let enclosing = std::mem::replace(&mut self.knockout, knockout);
