@@ -1010,3 +1010,37 @@ fn marquee_in_clip(clip: &Node, r: Rect) -> Option<Rect> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod geographic_fade_tests {
+    use super::*;
+    use crate::{Appearance, WorldMap, ZoomFade};
+    use vectorcraft_color::{Color, Paint};
+    use vectorcraft_geom::shapes;
+
+    #[test]
+    fn fully_faded_coast_does_not_intercept_canvas_selection() {
+        let mut doc = Document::new(1000.0, 500.0);
+        doc.world_map = Some(WorldMap::standard());
+        let layer = doc.layers[0].id;
+        doc.node_mut(layer).unwrap().extras_mut().zoom_fade =
+            Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
+        let shape = Node::path(
+            doc.alloc_id(),
+            shapes::rectangle(Rect::new(20.0, 20.0, 80.0, 80.0)),
+            Appearance::basic(Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0),
+        );
+        let id = shape.id;
+        doc.insert(Some(layer), 0, shape).unwrap();
+        let p = Point::new(50.0, 50.0);
+        let opts = HitOptions::default();
+        assert_eq!(hit_test_at_zoom(&doc, p, opts, 100.0).unwrap().leaf, id);
+        assert!(hit_test_at_zoom(&doc, p, opts, 500.0).is_none());
+        assert!(objects_at_zoom(&doc, p, opts, None, 500.0).is_empty());
+        assert!(marquee_at_zoom(&doc, Rect::new(15.0, 15.0, 90.0, 90.0), None, false, 500.0).is_empty());
+        // Geometrically the old layer still exists, selectable by its layer row.
+        assert_eq!(hit_test(&doc, p, opts).unwrap().leaf, id);
+        doc.world_map = None;
+        assert_eq!(hit_test_at_zoom(&doc, p, opts, 500.0).unwrap().leaf, id);
+    }
+}
