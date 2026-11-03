@@ -102,6 +102,18 @@ fn run_ui_part1(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             Ok(Value::Null)
         }
         "file.newWithoutDialog" => crate::dialogs::new_document_without_dialog(app),
+        "file.newWorldMap" => app.run(
+            "file.new",
+            json!({
+                "name": "Aetherys World Map",
+                "width": 1000.0,
+                "height": 500.0,
+                "units": "Points",
+                "artboards": 1,
+                "colorMode": "rgb",
+                "backgroundContents": "white",
+            }),
+        ),
         "app.home" => {
             app.ui.home = Some(home_key(app));
             Ok(Value::Null)
