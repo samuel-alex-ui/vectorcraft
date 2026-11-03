@@ -53,6 +53,7 @@ impl Serialize for Node {
             is_default(&e.compound_shape),
             is_default(&e.shape_mode),
             e.symbol_overrides.is_empty(),
+            e.zoom_fade.is_none(),
         ];
         let mut st = s.serialize_struct("Node", skips.iter().filter(|s| !**s).count())?;
         let mut skip = skips.into_iter();
@@ -94,6 +95,7 @@ impl Serialize for Node {
         field!("compound_shape", &e.compound_shape);
         field!("shape_mode", &e.shape_mode);
         field!("symbol_overrides", &e.symbol_overrides);
+        field!("zoom_fade", &e.zoom_fade);
         st.end()
     }
 }
@@ -232,6 +234,8 @@ pub(super) struct NodeWire {
     shape_mode: crate::ShapeMode,
     #[serde(default, deserialize_with = "counted_list")]
     symbol_overrides: Vec<crate::SymbolOverride>,
+    #[serde(default)]
+    zoom_fade: Option<crate::ZoomFade>,
 }
 
 impl From<NodeWire> for Node {
@@ -258,6 +262,7 @@ impl From<NodeWire> for Node {
             compound_shape: w.compound_shape,
             shape_mode: w.shape_mode,
             symbol_overrides: w.symbol_overrides,
+            zoom_fade: w.zoom_fade,
         };
         Node {
             id: w.id,
