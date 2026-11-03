@@ -114,7 +114,8 @@ impl WorldMap {
         let mut current = vec![self.project(first)?];
         let mut result = Vec::new();
         for pair in points.windows(2) {
-            let (from, to) = (pair[0], pair[1]);
+            let [from, to] = pair else { continue };
+            let (from, to) = (*from, *to);
             let endpoint = self.project(to)?;
             let delta = to.longitude_deg - from.longitude_deg;
             if delta.abs() <= 180.0 {
