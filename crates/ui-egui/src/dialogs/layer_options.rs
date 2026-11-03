@@ -388,7 +388,8 @@ mod tests {
         assert!(app.ui.dialog.as_ref().unwrap().bool("fadeOutEnabled"));
         app.ui.dialog = None;
 
-        let mut ordinary = app();
+        let mut ordinary = VectorcraftApp::new(Session::new(), Default::default());
+        ordinary.run("file.new", json!({})).unwrap();
         ordinary.run("ui.layerOptions", json!({})).unwrap();
         let d = ordinary.ui.dialog.as_ref().unwrap();
         assert!(!d.bool("worldMap"));
