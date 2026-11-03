@@ -54,6 +54,8 @@ pub(crate) struct GeomEntry {
     pub(crate) node: Arc<Node>,
     pub(crate) bounds: Option<Rect>,
     pub(crate) path: Option<Arc<BezPath>>,
+    /// Transient per-container index; kept by the same immutable Arc identity as bounds.
+    pub(crate) spatial: Option<crate::spatial::SpatialIndex>,
     pub(crate) stamp: u64,
 }
 
@@ -100,6 +102,10 @@ pub(crate) static MISSING_INLINE_LOGGED: std::sync::atomic::AtomicBool = std::sy
 pub struct FrameStats {
     pub drawn: usize,
     pub culled: usize,
+    /// Groups whose spatial index was built in this frame (zero on a cache hit).
+    pub spatial_indices_built: usize,
+    /// Members omitted by an indexed viewport query, before normal per-object culling.
+    pub spatial_nodes_skipped: usize,
     /// How many times the frame's symbol boxes measured symbol art ([`SymbolBoxes::art_measured`]):
     /// the art boxes of symbols and how far the effects in their art paint past it. Pattern tiles
     /// and placed documents measure with symbol boxes of their own, which are not counted.
