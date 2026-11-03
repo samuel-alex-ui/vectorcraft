@@ -40,7 +40,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::hit::{Hit, HitKind, hit_test, marquee, objects_at, selected_hidden_at};
+use vectorcraft_doc::hit::{Hit, HitKind};
 use vectorcraft_doc::{NodeId, OrientedBox};
 use vectorcraft_geom::{Affine, Point, Rect, Vec2};
 
@@ -167,7 +167,7 @@ fn distance_target(cx: &ToolContext, p: Point, m: Mods) -> Option<DistanceTo> {
     if !(cx.smart_guides && cx.distance_guides && m.alt) || cx.selection.objects.is_empty() {
         return None;
     }
-    match hit_test(cx.doc, p, cx.selection_hit_options()).map(|h| h.top_object(cx.isolation)) {
+    match cx.hit_test( p, cx.selection_hit_options()).map(|h| h.top_object(cx.isolation)) {
         Some(id) => (!cx.selection.contains(id)).then_some(DistanceTo::Object(id)),
         None => cx.doc.artboard_at(p).map(DistanceTo::Artboard),
     }
@@ -507,7 +507,7 @@ fn selected_source_hit(cx: &ToolContext, p: Point) -> Option<(Hit, NodeId)> {
     let is_sources = |g: &NodeId| cx.doc.node(*g).is_some_and(|n| n.name.as_deref() == Some(vectorcraft_doc::shaper::SOURCES));
     let mut containers = cx.doc.paint_order(cx.selection.objects.iter().filter_map(|id| cx.doc.parent_of(*id)).filter(is_sources));
     containers.dedup();
-    let front = hit_test(cx.doc, p, cx.selection_hit_options());
+    let front = cx.hit_test( p, cx.selection_hit_options());
     containers.into_iter().rev().find_map(|sources| {
         let group = cx.doc.parent_of(sources)?;
         if let Some(f) = &front
@@ -517,7 +517,7 @@ fn selected_source_hit(cx: &ToolContext, p: Point) -> Option<(Hit, NodeId)> {
         {
             return None;
         }
-        let h = hit_test(cx.doc, p, vectorcraft_doc::hit::HitOptions { scope: Some(sources), ..cx.selection_hit_options() })?;
+        let h = cx.hit_test( p, vectorcraft_doc::hit::HitOptions { scope: Some(sources), ..cx.selection_hit_options() })?;
         cx.selection.contains(h.top_object(Some(sources))).then_some((h, sources))
     })
 }
@@ -537,7 +537,7 @@ impl SelectionTool {
             return None;
         }
         let reach = cx.tol(HOVER_REACH);
-        let under = hit_test(cx.doc, p, cx.selection_hit_options()).map(|h| h.top_object(cx.isolation));
+        let under = cx.hit_test( p, cx.selection_hit_options()).map(|h| h.top_object(cx.isolation));
         let nearest = |points: &mut dyn Iterator<Item = Point>| {
             points.filter(|q| q.distance(p) <= reach).min_by(|a, b| a.distance(p).total_cmp(&b.distance(p)))
         };
@@ -604,7 +604,7 @@ fn thread_params(cx: &ToolContext, from: NodeId, start: Point, end: Point) -> Va
     };
     // The art the text flows into: what is drawn, not a clipping path's outline.
     let to =
-        hit_test(cx.doc, start, cx.hit_options()).map(|h| h.top_object(cx.isolation)).filter(|id| *id != from && cx.doc.node(*id).is_some_and(frame));
+        cx.hit_test( start, cx.hit_options()).map(|h| h.top_object(cx.isolation)).filter(|id| *id != from && cx.doc.node(*id).is_some_and(frame));
     match to {
         Some(to) => json!({ "from": from.0, "to": to.0 }),
         None => json!({ "from": from.0, "at": [start.x, start.y] }),
@@ -753,7 +753,7 @@ impl Tool for SelectionTool {
                 }
                 let (hit, scope) = match selected_source_hit(cx, p) {
                     Some((h, sources)) => (Some(h), Some(sources)),
-                    None => (hit_test(cx.doc, p, cx.selection_hit_options()), cx.isolation),
+                    None => (cx.hit_test( p, cx.selection_hit_options()), cx.isolation),
                 };
                 match hit {
                     Some(h) => {
@@ -889,7 +889,7 @@ impl Tool for SelectionTool {
                 if r.width() < Self::drag_threshold(cx) && r.height() < Self::drag_threshold(cx) {
                     return if toggle { vec![] } else { vec![Action::Exec("select.none".into(), json!({}))] };
                 }
-                let touched = marquee(cx.doc, r, cx.isolation, false);
+                let touched = cx.marquee( r, cx.isolation, false);
                 let ids = if enclosed { inside(cx, r, touched) } else { touched };
                 let art = Action::Exec(if toggle { "select.toggle" } else { "select.set" }.into(), json!({ "ids": json_ids(&ids) }));
                 std::iter::once(art).chain(crate::rulerguide::marquee_select(cx, r, enclosed)).collect()
@@ -1000,7 +1000,7 @@ impl Tool for SelectionTool {
         if selected_source_hit(cx, p).is_some() {
             return Cursor::Move;
         }
-        if let Some(h) = hit_test(cx.doc, p, cx.selection_hit_options()) {
+        if let Some(h) = cx.hit_test( p, cx.selection_hit_options()) {
             if cx.selection.contains(h.top_object(cx.isolation)) || m.alt {
                 return Cursor::Move;
             }
@@ -1013,7 +1013,7 @@ impl Tool for SelectionTool {
 /// Select Behind: of the objects under `p` (topmost first), the one below the lowest selected
 /// one, back to the topmost after the bottom one; the topmost when none is selected.
 fn object_behind(cx: &ToolContext, p: Point) -> Option<NodeId> {
-    let stack = objects_at(cx.doc, p, cx.selection_hit_options(), cx.isolation);
+    let stack = cx.objects_at( p, cx.selection_hit_options(), cx.isolation);
     let next = stack.iter().rposition(|id| cx.selection.contains(*id)).map_or(0, |i| i + 1);
     stack.get(next).or(stack.first()).copied()
 }
@@ -1100,7 +1100,7 @@ pub(crate) fn release_guide_at(cx: &ToolContext, p: Point, m: Mods) -> Option<Ac
     if let Some(i) = crate::rulerguide::guide_at(cx, p) {
         return Some(Action::Exec("view.guides.release".into(), json!({ "index": i })));
     }
-    let leaf = hit_test(cx.doc, p, cx.hit_options())?.leaf;
+    let leaf = cx.hit_test( p, cx.hit_options())?.leaf;
     let guide = cx.doc.node(leaf).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Path { guide: true, .. }));
     guide.then(|| Action::Exec("view.guides.release".into(), json!({ "ids": [leaf.0] })))
 }
@@ -1283,7 +1283,7 @@ impl SelectionTool {
             return vec![];
         }
         // A double-click edits what is drawn: not a clipping path's outline.
-        if let Some(h) = hit_test(cx.doc, p, cx.hit_options()) {
+        if let Some(h) = cx.hit_test( p, cx.hit_options()) {
             let top = h.top_object(cx.isolation);
             if cx.doc.node(top).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Text(_))) {
                 return vec![Action::SwitchTool("type".into())];
@@ -1379,7 +1379,7 @@ impl SelectionTool {
     /// the art of a selected object (picked in the Layers panel, say): there, without Shift, it
     /// grabs the selection by that art (at `grab`), as a press on its visible part does.
     fn press_nothing(&mut self, cx: &ToolContext, p: Point, grab: Point, m: Mods) {
-        self.state = if !m.shift && selected_hidden_at(cx.doc, p, cx.selection_hit_options(), &cx.selection.objects).is_some() {
+        self.state = if !m.shift && cx.selected_hidden_at( p, cx.selection_hit_options(), &cx.selection.objects).is_some() {
             State::Moving { start: grab, press: p, hold: grab, began: false, deselect: None, key: None, exclude: None }
         } else {
             State::Marquee { start: p, cur: p, toggle: m.shift, enclosed: false }
