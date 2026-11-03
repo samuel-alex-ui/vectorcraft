@@ -136,11 +136,20 @@ impl WorldMap {
             let t = ((seam - from.longitude_deg) / (wrapped_end - from.longitude_deg)).clamp(0.0, 1.0);
             let latitude = from.latitude_deg + t * (to.latitude_deg - from.latitude_deg);
             let y = (90.0 - latitude) / 180.0 * self.height;
-            current.push(CanvasPoint { x: if eastward { self.width } else { 0.0 }, y });
+            let before = CanvasPoint { x: if eastward { self.width } else { 0.0 }, y };
+            let after = CanvasPoint { x: if eastward { 0.0 } else { self.width }, y };
+            // At an exact seam endpoint, avoid adding a zero-length segment;
+            // a zero-length stroked path can still produce visible end caps.
+            if current.last() != Some(&before) {
+                current.push(before);
+            }
             if current.len() > 1 {
                 result.push(std::mem::take(&mut current));
             }
-            current = vec![CanvasPoint { x: if eastward { 0.0 } else { self.width }, y }, endpoint];
+            current = vec![after];
+            if endpoint != after {
+                current.push(endpoint);
+            }
         }
         if current.len() > 1 || points.len() == 1 {
             result.push(current);
