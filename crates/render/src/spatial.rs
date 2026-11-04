@@ -4,10 +4,18 @@
 //! must not be serialized. Cached indices live beside a node's Arc-identity geometry
 //! cache entry, so changing a group invalidates the index automatically.
 
+use std::mem::size_of;
+
 use crate::Rect;
 
 /// Small leaves avoid excessive tree nodes while keeping viewport queries cheap.
 const LEAF_SIZE: usize = 12;
+/// Spatial indices share a bounded auxiliary-memory cache in the renderer.
+/// This does not include the existing document nodes or geometry cache.
+pub(crate) const CACHE_BUDGET: usize = 64 << 20;
+/// Keep individual index construction bounded; exceptionally large
+/// containers retain the renderer's existing conservative culling path.
+pub(crate) const MAX_INDEXED_MEMBERS: usize = 262_144;
 
 struct Item {
     index: usize,
@@ -19,6 +27,8 @@ pub(crate) struct SpatialIndex {
     /// Objects without usable finite bounds are always visited, never silently lost.
     always: Vec<usize>,
     total: usize,
+    /// Count tree allocations once on construction, not on each pan frame.
+    bytes: usize,
 }
 
 struct Branch {
@@ -58,6 +68,13 @@ impl Branch {
         Self { bounds, left: Some(Box::new(Self::build(left))), right: Some(Box::new(Self::build(right))), items: Vec::new() }
     }
 
+    fn heap_bytes(&self) -> usize {
+        size_of::<Self>()
+            .saturating_add(self.items.capacity().saturating_mul(size_of::<usize>()))
+            .saturating_add(self.left.as_ref().map_or(0, |node| node.heap_bytes()))
+            .saturating_add(self.right.as_ref().map_or(0, |node| node.heap_bytes()))
+    }
+
     fn query(&self, viewport: Rect, result: &mut Vec<usize>) {
         if !overlap(self.bounds, viewport) {
             return;
@@ -84,7 +101,15 @@ impl SpatialIndex {
             }
         }
         let root = (!items.is_empty()).then(|| Box::new(Branch::build(&mut items)));
-        Self { root, always, total }
+        let bytes = size_of::<Self>()
+            .saturating_add(always.capacity().saturating_mul(size_of::<usize>()))
+            .saturating_add(root.as_ref().map_or(0, |branch| branch.heap_bytes()));
+        Self { root, always, total, bytes }
+    }
+
+    /// Estimate the live memory owned by this index (excluding document geometry).
+    pub(crate) fn memory_bytes(&self) -> usize {
+        self.bytes
     }
 
     /// Return indices in their *original* order, preserving painter's order and blending.
@@ -106,6 +131,15 @@ impl SpatialIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn index_memory_tracks_tree_and_fallback_storage() {
+        let index = SpatialIndex::new((0..256).map(|i| (i, Some(Rect::new(i as f64, 0.0, i as f64 + 1.0, 10.0)))), 256);
+        assert!(index.memory_bytes() >= size_of::<SpatialIndex>() + size_of::<Branch>());
+        let unknown = SpatialIndex::new((0..256).map(|i| (i, None)), 256);
+        assert!(unknown.memory_bytes() >= size_of::<SpatialIndex>() + 256 * size_of::<usize>());
+        assert!(index.memory_bytes() <= CACHE_BUDGET);
+    }
 
     #[test]
     fn candidates_keep_painter_order_and_edge_contacts() {
