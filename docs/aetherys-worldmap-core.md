@@ -59,11 +59,15 @@ cargo test -p vectorcraft-render --test world_map_spatial
 cargo test -p vectorcraft-render --lib spatial_budget
 cargo test -p vectorcraft-worldmap --test seam_polyline
 cargo test -p vectorcraft-worldmap --test tiles
+cargo test -p vectorcraft-worldmap --test tile_requests
 cargo test -p vectorcraft-render --test world_map_fade
 cargo test -p vectorcraft-worldmap
 cargo clippy -p vectorcraft-render -p vectorcraft-worldmap --all-targets -- -D warnings
-# Optional diagnostic benchmark (not a performance pass/fail assertion):
+# Optional diagnostic benchmarks (not performance pass/fail assertions):
 cargo test -p vectorcraft-render --test world_map_spatial -- --ignored --nocapture
+# The new 32,000-vertex *single filled coastline* diagnostic isolates a
+# path-level bottleneck: the group index is not expected to make this faster.
+cargo test -p vectorcraft-render --test world_map_spatial benchmark_one_huge_filled_coastline -- --ignored --nocapture
 ```
 
 Pixel-for-pixel comparisons with ordinary rendering on four viewports must
@@ -80,6 +84,11 @@ effects, memory and other zoom levels still need profiling.
 
 ### Explicit next 1.6 work
 
+- A manual diagnostic benchmark with **one 32,000-vertex filled coastline**
+  has now been added. It checks pixel-equivalence against an ordinary
+  document and reports the timed renders without asserting an unearned
+  speedup. Run on macOS and record measurements before changing path
+  segmentation or the rendering of filled shapes.
 - Profile one single extremely long coastline path and filled coast polygons.
   A group-level index does **not** reduce their segment processing.
 - Decide on topology-preserving tiled geometry or path/subpath acceleration
@@ -105,6 +114,17 @@ The open-line antimeridian is not silently wrapped by the viewport query.
 chunks, prefetching, cache-backed document materialization and crash recovery.
 The viewport tiles are currently a read-only addressing utility, not a
 streaming engine.
+
+**Next foundation implemented:** `WorldMap::plan_tile_requests` supplies a
+`TileRequestPlan` containing strictly required `visible` tiles and optional
+nearest-first `prefetch` tiles. A configurable margin of 0–2 neighboring
+tiles never wraps across the map seam. It preserves every visible tile and
+caps the combined request list at 4,096. Queries reject invalid margins and
+nonfinite or oversized viewports. A later asynchronous loader can prioritize
+`visible`, cancel obsolete prefetches, and reuse the returned stable
+`WorldTile` keys. Neither method creates or persists map geometry.
+These are deterministic, pure-data plans; **no asynchronous I/O or disk
+chunk loading has been added**.
 
 **Do not lazy-load the existing mutable `Document.layers` graph without
 designing document consistency and undo first.** Current documents hold nodes
