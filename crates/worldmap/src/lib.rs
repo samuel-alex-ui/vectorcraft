@@ -9,12 +9,16 @@
 //! Callers must split geometries that cross this seam before drawing them.
 
 mod chunk_manifest;
+#[cfg(not(target_arch = "wasm32"))]
+mod native_tile_store;
 mod tile_cache;
 mod tiles;
 pub use chunk_manifest::{
     ChunkManifestError, MAX_MANIFEST_BYTES, MAX_MANIFEST_ENTRIES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA,
     TileCacheManifest,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub use native_tile_store::{TileCacheStore, TileStoreError};
 pub use tile_cache::{DEFAULT_TILE_PREVIEW_BUDGET, MAX_TILE_PREVIEW_BUDGET, TilePreviewCache};
 pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
 
