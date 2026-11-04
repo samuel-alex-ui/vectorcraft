@@ -61,6 +61,8 @@ cargo test -p vectorcraft-worldmap --test seam_polyline
 cargo test -p vectorcraft-worldmap --test tiles
 cargo test -p vectorcraft-worldmap --test tile_requests
 cargo test -p vectorcraft-worldmap --test tile_cache
+cargo test -p vectorcraft-worldmap --test chunk_manifest
+cargo test -p vectorcraft-worldmap --test native_tile_store
 cargo test -p vectorcraft-render --test world_map_fade
 cargo test -p vectorcraft-worldmap
 cargo clippy -p vectorcraft-render -p vectorcraft-worldmap --all-targets -- -D warnings
@@ -142,9 +144,19 @@ This cache contains **derived previews only**, never the canonical SVG-like
 vector tree, editing state or save data. Its byte accounting covers resident
 preview payloads, excluding allocator overhead and references held by callers.
 It is deliberately *not* wired to the document editor or filesystem yet.
-Neither actual chunk persistence, lazy loading, nor a prefetch worker is
-implemented. The next step is a validated storage manifest, atomic save,
-undo/recovery behavior and a loader that consumes these APIs.
+A new **optional derived-preview disk store** now provides a v1
+`TileCacheManifest`, CRC32/size validation of preview blobs, bounded JSON
+deserialization, and a native `TileCacheStore`. A manifest is committed only
+after every referenced preview has been written and verified. Its write is
+isolated to the app-selected cache directory, not `.vectorcraft`; no
+canonical vector geometry is stored there. Invalid/missing cached bytes
+return errors rather than blank tiles. See
+[experimental tile-cache storage protocol](aetherys-tile-cache-store.md).
+
+**Not implemented:** editor integration, geometry chunks, async disk loading,
+document transaction/undo protection, on-disk garbage collection or the full
+streaming loader. The cache-store APIs are deliberately standalone until the
+canonical geometry ownership and recovery contract is designed.
 
 **Do not lazy-load the existing mutable `Document.layers` graph without
 designing document consistency and undo first.** Current documents hold nodes
