@@ -11,6 +11,7 @@
 mod chunk_manifest;
 #[cfg(not(target_arch = "wasm32"))]
 mod native_tile_store;
+mod scale;
 mod tile_cache;
 mod tiles;
 pub use chunk_manifest::{
@@ -18,6 +19,7 @@ pub use chunk_manifest::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use native_tile_store::{TileCacheStore, TileStoreError};
+pub use scale::ScaleBar;
 pub use tile_cache::{DEFAULT_TILE_PREVIEW_BUDGET, MAX_TILE_PREVIEW_BUDGET, TilePreviewCache};
 pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
 
