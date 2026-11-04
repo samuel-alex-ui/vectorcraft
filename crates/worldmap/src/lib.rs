@@ -8,7 +8,9 @@
 //! south = -90°. The antimeridian has two *display* edges (x=0 and x=width).
 //! Callers must split geometries that cross this seam before drawing them.
 
+mod tile_cache;
 mod tiles;
+pub use tile_cache::{DEFAULT_TILE_PREVIEW_BUDGET, MAX_TILE_PREVIEW_BUDGET, TilePreviewCache};
 pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
 
 /// Recommended initial world-map artboard dimensions, in VectorCraft points.
