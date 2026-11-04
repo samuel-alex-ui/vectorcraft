@@ -115,7 +115,7 @@ impl TileCacheStore {
         };
         // Read at most one byte over the limit, even for a maliciously large file.
         let mut json = Vec::new();
-        file.by_ref().take((MAX_MANIFEST_BYTES + 1) as u64).read_to_end(&mut json)?;
+        Read::by_ref(&mut file).take((MAX_MANIFEST_BYTES + 1) as u64).read_to_end(&mut json)?;
         Ok(Some(TileCacheManifest::from_json(&json, expected_revision)?))
     }
 }
