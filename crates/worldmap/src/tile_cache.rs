@@ -116,7 +116,7 @@ impl TilePreviewCache {
         }
         // Avoid keeping millions of tiny (but nonempty) previews.
         let replacing = self.entries.contains_key(&tile);
-        while base.saturating_add(size).saturating_sub(self.bytes.saturating_sub(base)) > self.budget
+        while self.bytes.saturating_sub(old_size).saturating_add(size) > self.budget
             || (!replacing && self.entries.len() >= MAX_QUERY_TILES)
         {
             let victim = self.entries.iter()
