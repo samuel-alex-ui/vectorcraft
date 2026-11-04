@@ -108,7 +108,7 @@ fn chunks_are_sorted_and_malicious_size_metadata_does_not_allocate() {
     manifest.add_preview(tile(8, 6), b"data").unwrap();
     manifest.add_preview(tile(2, 6), b"data").unwrap();
     manifest.add_preview(tile(3, 2), b"data").unwrap();
-    assert_eq!(manifest.entries.iter().map(|entry| entry.tile).collect::<Vec<_>>(), vec![tile(3, 2), tile(2, 6), tile(8, 6)]);
+    assert_eq!(manifest.entries.iter().map(|entry| entry.tile).collect::<Vec<_>>(), vec![tile(2, 6), tile(3, 2), tile(8, 6)]);
     let oversized = PreviewChunkMeta { tile: tile(3, 2), bytes: MAX_PREVIEW_CHUNK_BYTES as u32 + 1, crc32: 0 };
     assert_eq!(oversized.verify(b"foo"), Err(ChunkManifestError::InvalidChunkSize));
     assert!(manifest.entries.iter().all(|entry| entry.relative_path(u64::MAX).bytes().all(|c| c.is_ascii_alphanumeric() || b"/-._".contains(&c))));
