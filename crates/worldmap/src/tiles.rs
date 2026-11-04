@@ -85,7 +85,7 @@ impl WorldMap {
         if level > MAX_TILE_LEVEL {
             return Err(TileError::InvalidLevel);
         }
-        if ![top_left.x, top_left.y, bottom_right.x, bottom_right.y].into_iter().all(f64::is_finite)
+        if ![top_left.x, top_left.y, bottom_right.x, bottom_right.y].iter().all(|value| value.is_finite())
             || top_left.x > bottom_right.x
             || top_left.y > bottom_right.y
         {
