@@ -27,7 +27,8 @@ pub struct TileRequestPlan {
     pub prefetch: Vec<WorldTile>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorldTile {
     pub level: u8,
     pub column: u32,
