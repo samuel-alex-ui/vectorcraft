@@ -27,6 +27,7 @@ mod outline;
 mod overlays;
 mod panes;
 mod raster;
+mod scale_bar;
 mod task_bar;
 mod tool_overlays;
 mod view;
@@ -364,6 +365,9 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
     if app.ui.screen_mode < 3 {
         crate::free_transform::show(app, ui, xf.rect);
+        // Physical distance is an overlay, never inserted into the exported
+        // artwork; ordinary documents have no metric world scale.
+        scale_bar::paint(&painter, &xf, &doc);
     }
     artboard_name_editor(app, ui, &xf);
     if resp.hovered() {
