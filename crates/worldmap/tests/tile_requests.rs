@@ -15,12 +15,7 @@ fn prefetch_never_replaces_visible_tiles_and_is_nearest_first() {
     assert_eq!(plan.visible, visible);
     assert_eq!(plan.visible.len(), 4);
     assert_eq!(plan.prefetch.len(), 12);
-    let expected_first_ring = [
-        (3, 0), (4, 0),
-        (2, 1), (5, 1),
-        (2, 2), (5, 2),
-        (3, 3), (4, 3),
-    ];
+    let expected_first_ring = [(3, 0), (4, 0), (2, 1), (5, 1), (2, 2), (5, 2), (3, 3), (4, 3)];
     for (tile, (column, row)) in plan.prefetch.iter().zip(expected_first_ring) {
         assert_eq!((tile.column, tile.row), (column, row));
     }

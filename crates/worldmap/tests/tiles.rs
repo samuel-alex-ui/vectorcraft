@@ -11,10 +11,7 @@ fn point(x: f64, y: f64) -> CanvasPoint {
 fn level_zero_covers_the_planet_with_two_square_tiles() {
     let map = WorldMap::standard();
     let tiles = map.visible_tiles(point(0.0, 0.0), point(1000.0, 500.0), 0).unwrap();
-    assert_eq!(tiles, vec![
-        WorldTile { level: 0, column: 0, row: 0 },
-        WorldTile { level: 0, column: 1, row: 0 },
-    ]);
+    assert_eq!(tiles, vec![WorldTile { level: 0, column: 0, row: 0 }, WorldTile { level: 0, column: 1, row: 0 },]);
     assert_eq!(map.tile_bounds(tiles[0]), Some((point(0.0, 0.0), point(500.0, 500.0))));
     assert_eq!(map.tile_bounds(tiles[1]), Some((point(500.0, 0.0), point(1000.0, 500.0))));
 }
@@ -23,12 +20,15 @@ fn level_zero_covers_the_planet_with_two_square_tiles() {
 fn exact_tile_boundaries_include_neighbors_without_duplicates() {
     let map = WorldMap::standard();
     let tiles = map.visible_tiles(point(500.0, 250.0), point(500.0, 250.0), 2).unwrap();
-    assert_eq!(tiles, vec![
-        WorldTile { level: 2, column: 3, row: 1 },
-        WorldTile { level: 2, column: 4, row: 1 },
-        WorldTile { level: 2, column: 3, row: 2 },
-        WorldTile { level: 2, column: 4, row: 2 },
-    ]);
+    assert_eq!(
+        tiles,
+        vec![
+            WorldTile { level: 2, column: 3, row: 1 },
+            WorldTile { level: 2, column: 4, row: 1 },
+            WorldTile { level: 2, column: 3, row: 2 },
+            WorldTile { level: 2, column: 4, row: 2 },
+        ]
+    );
 }
 
 #[test]

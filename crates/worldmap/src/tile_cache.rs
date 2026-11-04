@@ -110,16 +110,17 @@ impl TilePreviewCache {
         let old_size = self.entries.get(&tile).map_or(0, |entry| entry.data.len());
         let base = self.bytes.saturating_sub(old_size);
         let protected: HashSet<WorldTile> = visible.iter().copied().collect();
-        let reclaimable = self.entries.iter().filter(|(k, _)| **k != tile && !protected.contains(k)).map(|(_, entry)| entry.data.len()).sum::<usize>();
+        let reclaimable =
+            self.entries.iter().filter(|(k, _)| **k != tile && !protected.contains(k)).map(|(_, entry)| entry.data.len()).sum::<usize>();
         if base.saturating_add(size) > self.budget.saturating_add(reclaimable) {
             return false;
         }
         // Avoid keeping millions of tiny (but nonempty) previews.
         let replacing = self.entries.contains_key(&tile);
-        while self.bytes.saturating_sub(old_size).saturating_add(size) > self.budget
-            || (!replacing && self.entries.len() >= MAX_QUERY_TILES)
-        {
-            let victim = self.entries.iter()
+        while self.bytes.saturating_sub(old_size).saturating_add(size) > self.budget || (!replacing && self.entries.len() >= MAX_QUERY_TILES) {
+            let victim = self
+                .entries
+                .iter()
                 .filter(|(k, _)| **k != tile && !protected.contains(k))
                 .min_by_key(|(key, entry)| (entry.last_used, **key))
                 .map(|(key, _)| *key);

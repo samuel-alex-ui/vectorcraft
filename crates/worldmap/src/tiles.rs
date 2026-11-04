@@ -57,11 +57,7 @@ fn tile_range(a: f64, b: f64, extent: f64, count: u32) -> (u32, u32) {
     let end = b.clamp(0.0, extent) / extent * f64::from(count);
     let last = count - 1;
     let start_floor = start.floor() as u32;
-    let first = if start > 0.0 && start.fract() == 0.0 {
-        start_floor.saturating_sub(1)
-    } else {
-        start_floor
-    };
+    let first = if start > 0.0 && start.fract() == 0.0 { start_floor.saturating_sub(1) } else { start_floor };
     (first.min(last), (end.floor() as u32).min(last))
 }
 
@@ -142,14 +138,8 @@ impl WorldMap {
         }
         let (width, height) = self.size();
         Some((
-            CanvasPoint {
-                x: width * f64::from(tile.column) / f64::from(columns),
-                y: height * f64::from(tile.row) / f64::from(rows),
-            },
-            CanvasPoint {
-                x: width * f64::from(tile.column + 1) / f64::from(columns),
-                y: height * f64::from(tile.row + 1) / f64::from(rows),
-            },
+            CanvasPoint { x: width * f64::from(tile.column) / f64::from(columns), y: height * f64::from(tile.row) / f64::from(rows) },
+            CanvasPoint { x: width * f64::from(tile.column + 1) / f64::from(columns), y: height * f64::from(tile.row + 1) / f64::from(rows) },
         ))
     }
 

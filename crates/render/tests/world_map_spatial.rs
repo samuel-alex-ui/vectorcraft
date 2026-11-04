@@ -107,11 +107,7 @@ fn overlapping_objects_preserve_original_painter_order() {
     let mut fast = Renderer::new();
     let mut baseline = Renderer::new();
     for (dx, dy) in [(0.0, 0.0), (35.0, 18.0), (90.0, 52.0)] {
-        assert_eq!(
-            render(&mut fast, &indexed, dx, dy),
-            render(&mut baseline, &ordinary, dx, dy),
-            "layer order changed under spatial filtering"
-        );
+        assert_eq!(render(&mut fast, &indexed, dx, dy), render(&mut baseline, &ordinary, dx, dy), "layer order changed under spatial filtering");
     }
 }
 
