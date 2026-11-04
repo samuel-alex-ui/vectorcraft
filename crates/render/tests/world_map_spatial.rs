@@ -4,7 +4,7 @@
 
 use vectorcraft_color::{Color, Paint};
 use vectorcraft_doc::{Appearance, Document, Node, WorldMap, ZoomFade};
-use vectorcraft_geom::{Affine, Rect, shapes};
+use vectorcraft_geom::{Affine, PathData, Point, Rect, SubPath, shapes};
 use vectorcraft_render::{RenderOptions, Renderer};
 
 fn grid(count: usize) -> Document {
@@ -128,6 +128,60 @@ fn indexed_world_map_still_respects_zoom_faded_layers() {
     let invisible = renderer.render(&doc, 128, 128, Affine::IDENTITY, &opts(500.0));
     assert_eq!(invisible.pixel(12, 12), [255, 255, 255, 255]);
     assert_eq!(renderer.stats.spatial_indices_built, 0, "fully faded layer should not be traversed");
+}
+
+/// A single filled coastline is intentionally *not* made faster by a
+/// per-group index. Diagnose this separate bottleneck before implementing
+/// any path splitting that might change holes, fill rules, or editing.
+#[test]
+#[ignore = "manual 32,000-vertex filled-coastline benchmark; not a CI timing assertion"]
+fn benchmark_one_huge_filled_coastline() {
+    use std::time::Instant;
+
+    let mut doc = Document::new(1000.0, 500.0);
+    doc.world_map = Some(WorldMap::standard());
+    let layer = doc.layers[0].id;
+    let vertices = 32_000usize;
+    let mut coast = Vec::with_capacity(vertices + 2);
+    for i in 0..vertices {
+        let x = i as f64 * 1000.0 / (vertices - 1) as f64;
+        let y = 180.0 + (i as f64 * 0.091).sin() * 16.0 + (i as f64 * 0.017).cos() * 10.0;
+        coast.push(Point::new(x, y));
+    }
+    coast.push(Point::new(1000.0, 490.0));
+    coast.push(Point::new(0.0, 490.0));
+    let path = Node::path(
+        doc.alloc_id(),
+        PathData::single(SubPath::polyline(&coast, true)),
+        Appearance::basic(Paint::solid(Color::rgb(0.25, 0.65, 0.35)), Paint::None, 0.0),
+    );
+    doc.insert(Some(layer), 0, path).unwrap();
+    let mut ordinary = doc.clone();
+    ordinary.world_map = None;
+    let views = [(0.0, 150.0), (240.0, 175.0), (520.0, 190.0), (840.0, 165.0)];
+    let mut indexed = Renderer::new();
+    let mut legacy = Renderer::new();
+    for (dx, dy) in views {
+        let a = render(&mut indexed, &doc, dx, dy);
+        let b = render(&mut legacy, &ordinary, dx, dy);
+        assert_eq!(a, b, "filled coastline differs at ({dx}, {dy})");
+    }
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut indexed, &doc, dx, dy);
+    }
+    let map_time = start.elapsed();
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut legacy, &ordinary, dx, dy);
+    }
+    let legacy_time = start.elapsed();
+    eprintln!(
+        "one filled coast (32,000 vertices): world-map {map_time:?}, ordinary {legacy_time:?}, indexed children skipped: {}",
+        indexed.stats.spatial_nodes_skipped
+    );
+    // Report measurements; do not demand an improvement from an index that
+    // currently accelerates large *groups* but not one giant path.
 }
 
 #[test]
