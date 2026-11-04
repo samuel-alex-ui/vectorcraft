@@ -34,9 +34,16 @@ For world-map layers and simple groups containing **128 or more direct members**
 
 Index construction costs O(N log N) and memory O(N) per indexed container;
 subsequent viewport queries are generally substantially cheaper than visiting
-all N children. A spatially giant individual path *still needs its full
-geometry drawn*; this step does not subdivide a single path or automatically
-split filled coastlines.
+all N children. **Derived spatial indices share a 64 MiB retained-cache
+budget:** the least recently used index is discarded as needed both during
+rendering and at frame end. Its geometry and document contents are never
+discarded. A single indexed group is limited to 262,144 direct children;
+oversized groups use the original conservative renderer. These are cache
+limits, not caps on the number of objects a document can hold.
+
+A spatially giant individual path *still needs its full geometry drawn*;
+this step does not subdivide a single path or automatically split filled
+coastlines.
 
 Renderer statistics include `spatial_indices_built` (index/cache misses)
 and `spatial_nodes_skipped` (members pruned by the spatial query).
@@ -49,7 +56,9 @@ Run on macOS from the repository branch:
 cargo fmt --all
 cargo fmt --all --check
 cargo test -p vectorcraft-render --test world_map_spatial
+cargo test -p vectorcraft-render --lib spatial_budget
 cargo test -p vectorcraft-worldmap --test seam_polyline
+cargo test -p vectorcraft-worldmap --test tiles
 cargo test -p vectorcraft-render --test world_map_fade
 cargo test -p vectorcraft-worldmap
 cargo clippy -p vectorcraft-render -p vectorcraft-worldmap --all-targets -- -D warnings
@@ -62,7 +71,12 @@ pass. After the first frame, repeated pan frames should reuse the index;
 after inserting a new object, the index must rebuild and display that object.
 Time a warmed renderer on multiple viewports with representative workloads;
 compare wall times on the *same machine* and report the number of objects
-pruned. No fabricated speedup percentage is implied by the index alone.
+pruned. The first reported local Mac benchmark on 2026-11-04, with 8,192 simple
+rectangles and four warmed viewports, measured 1.004459 ms indexed versus
+1.443375 ms on the legacy traversal (approximately 30.4% lower elapsed time)
+and 7,664 skipped nodes on the last view. This is **one diagnostic run**,
+not a reliable general-purpose speedup claim. Larger coastlines, fills,
+effects, memory and other zoom levels still need profiling.
 
 ### Explicit next 1.6 work
 
@@ -70,10 +84,27 @@ pruned. No fabricated speedup percentage is implied by the index alone.
   A group-level index does **not** reduce their segment processing.
 - Decide on topology-preserving tiled geometry or path/subpath acceleration
   without changing fills, stroke caps, winding rules, effects or editing.
-- Budget index memory on very large drawings and validate under rotation,
-  1,000,000× zoom, nested groups and all blend modes before release.
+- The 64 MiB retained-cache limit and oversized-group fallback are now
+  implemented and have targeted tests. Validate on macOS.
+- Rotated and 1,000,000× viewport comparisons and heavily overlapping
+  painter-order comparisons were added; run them before release. Still profile
+  nested groups, varied blend modes and large real-world maps.
 
-## Phase 1.7: data streaming and memory budgets – design, not implemented yet
+## Phase 1.7: tile addressing and memory safety – first foundations
+
+**Implemented in this step:** the 64 MiB world-map spatial-index cache
+budget and `WorldMap::visible_tiles` / `WorldMap::tile_bounds` provide a
+stable 2:1 geographic tile grid. Level 0 contains two 500×500 tiles on
+the standard 1000×500 map; each level doubles each axis, up to level 18.
+Viewport queries conservatively include tiles touching exact boundaries,
+clip off-world views, reject invalid coordinates and cap responses at
+4,096 tile keys. Tile addresses **do not store or copy vector geometry**.
+The open-line antimeridian is not silently wrapped by the viewport query.
+
+**Not implemented:** disk loading, tile manifests, dirty/pinned editing
+chunks, prefetching, cache-backed document materialization and crash recovery.
+The viewport tiles are currently a read-only addressing utility, not a
+streaming engine.
 
 **Do not lazy-load the existing mutable `Document.layers` graph without
 designing document consistency and undo first.** Current documents hold nodes

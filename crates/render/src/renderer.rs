@@ -175,6 +175,9 @@ impl Renderer {
         if self.geom.len() > 1024 {
             self.geom.retain(|_, e| g - e.stamp <= 3);
         }
+        // Auxiliary world-map indices can be much larger than the entry-count
+        // threshold above. Bound their combined memory independently.
+        self.trim_spatial_cache_to(crate::spatial::CACHE_BUDGET);
         if self.strokes.len() > 1024 {
             self.strokes.retain(|_, e| g - e.stamp <= 3);
         }
@@ -197,6 +200,37 @@ impl Renderer {
         self.placed_arts.sweep(g);
         self.brushes.entries.sweep(g);
         self.live.sweep(g);
+    }
+
+    /// Evict least-recently-used spatial indices when their total exceeds a
+    /// byte budget. Only derived indices are dropped, never vector objects,
+    /// renderer geometry, saved content, or undo history. This runs after a
+    /// frame, when nothing holds an index reference.
+    pub(crate) fn trim_spatial_cache_to(&mut self, budget: usize) {
+        let mut used = 0usize;
+        let mut entries = Vec::new();
+        for (key, entry) in &self.geom {
+            if let Some(index) = &entry.spatial {
+                let bytes = index.memory_bytes();
+                used = used.saturating_add(bytes);
+                entries.push((*key, entry.stamp, bytes));
+            }
+        }
+        if used <= budget {
+            return;
+        }
+        // Oldest first, with a stable tiebreak within this renderer.
+        entries.sort_unstable_by_key(|(key, stamp, _)| (*stamp, *key));
+        for (key, _, bytes) in entries {
+            if used <= budget {
+                break;
+            }
+            if let Some(entry) = self.geom.get_mut(&key)
+                && entry.spatial.take().is_some()
+            {
+                used = used.saturating_sub(bytes);
+            }
+        }
     }
 
     /// Draw frame `f` (`w`×`h` pixels): the background, the artboards and the page's art.
