@@ -3,8 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use vectorcraft_worldmap::{
-    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA, TileCacheManifest, WorldMap,
-    WorldTile,
+    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA, TileCacheManifest, WorldMap, WorldTile,
 };
 
 fn tile(column: u32, row: u32) -> WorldTile {
@@ -35,10 +34,7 @@ fn manifest_round_trips_and_verifies_a_preview_blob() {
 fn invalid_dimensions_duplicate_tile_and_excessive_chunk_are_rejected() {
     let mut manifest = TileCacheManifest::new(WorldMap::standard(), 0);
     assert_eq!(manifest.add_preview(tile(5, 3), b""), Err(ChunkManifestError::InvalidChunkSize));
-    assert_eq!(
-        manifest.add_preview(WorldTile { level: 3, column: 16, row: 0 }, b"ok"),
-        Err(ChunkManifestError::InvalidTile)
-    );
+    assert_eq!(manifest.add_preview(WorldTile { level: 3, column: 16, row: 0 }, b"ok"), Err(ChunkManifestError::InvalidTile));
     let valid = manifest.add_preview(tile(5, 3), b"ok").unwrap();
     assert_eq!(manifest.add_preview(tile(5, 3), b"again"), Err(ChunkManifestError::DuplicateTile));
     assert_eq!(manifest.entries.len(), 1);
@@ -59,10 +55,7 @@ fn stale_and_future_manifests_fail_closed() {
     assert_eq!(TileCacheManifest::from_json(&future, 19), Err(ChunkManifestError::UnsupportedFormat));
     json["schema"] = serde_json::json!(TILE_CACHE_SCHEMA);
     json["magic"] = serde_json::json!("different cache");
-    assert_eq!(
-        TileCacheManifest::from_json(&serde_json::to_vec(&json).unwrap(), 19),
-        Err(ChunkManifestError::UnsupportedFormat)
-    );
+    assert_eq!(TileCacheManifest::from_json(&serde_json::to_vec(&json).unwrap(), 19), Err(ChunkManifestError::UnsupportedFormat));
 }
 
 #[test]
@@ -73,33 +66,18 @@ fn corrupt_json_and_duplicate_or_unsafe_entries_are_rejected() {
     let mut value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     let entry = value["entries"][0].clone();
     value["entries"].as_array_mut().unwrap().push(entry);
-    assert_eq!(
-        TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1),
-        Err(ChunkManifestError::DuplicateTile)
-    );
+    assert_eq!(TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1), Err(ChunkManifestError::DuplicateTile));
     value["entries"].as_array_mut().unwrap().pop();
     value["entries"][0]["bytes"] = serde_json::json!(0);
-    assert_eq!(
-        TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1),
-        Err(ChunkManifestError::InvalidChunkSize)
-    );
+    assert_eq!(TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1), Err(ChunkManifestError::InvalidChunkSize));
     value["entries"][0]["bytes"] = serde_json::json!(3);
     value["entries"][0]["tile"]["column"] = serde_json::json!(99);
-    assert_eq!(
-        TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1),
-        Err(ChunkManifestError::InvalidTile)
-    );
+    assert_eq!(TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1), Err(ChunkManifestError::InvalidTile));
     value["entries"][0]["tile"]["column"] = serde_json::json!(2);
     value["entries"][0]["tile"]["unknown"] = serde_json::json!("../escape");
-    assert_eq!(
-        TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1),
-        Err(ChunkManifestError::InvalidEncoding)
-    );
+    assert_eq!(TileCacheManifest::from_json(&serde_json::to_vec(&value).unwrap(), 1), Err(ChunkManifestError::InvalidEncoding));
     assert_eq!(TileCacheManifest::from_json(b"{not json", 1), Err(ChunkManifestError::InvalidEncoding));
-    assert_eq!(
-        TileCacheManifest::from_json(&vec![b' '; MAX_MANIFEST_BYTES + 1], 1),
-        Err(ChunkManifestError::TooManyEntries)
-    );
+    assert_eq!(TileCacheManifest::from_json(&vec![b' '; MAX_MANIFEST_BYTES + 1], 1), Err(ChunkManifestError::TooManyEntries));
 }
 
 #[test]

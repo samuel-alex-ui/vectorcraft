@@ -14,8 +14,7 @@ mod native_tile_store;
 mod tile_cache;
 mod tiles;
 pub use chunk_manifest::{
-    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_MANIFEST_ENTRIES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA,
-    TileCacheManifest,
+    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_MANIFEST_ENTRIES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA, TileCacheManifest,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use native_tile_store::{TileCacheStore, TileStoreError};

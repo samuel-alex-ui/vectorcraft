@@ -68,10 +68,7 @@ impl PreviewChunkMeta {
     /// A content-checked path within the application's *cache* directory.
     /// Revisions separate successive source documents; it cannot traverse.
     pub fn relative_path(&self, source_revision: u64) -> String {
-        format!(
-            "rev-{source_revision}/z{}/x{}/y{}-{}-{:08x}.bin",
-            self.tile.level, self.tile.column, self.tile.row, self.bytes, self.crc32
-        )
+        format!("rev-{source_revision}/z{}/x{}/y{}-{}-{:08x}.bin", self.tile.level, self.tile.column, self.tile.row, self.bytes, self.crc32)
     }
 }
 
