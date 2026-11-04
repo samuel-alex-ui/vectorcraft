@@ -184,6 +184,24 @@ Proposed safe approach:
 The existing geometry/frame caches and newly indexed group traversal are a
 safe foundation; they are **not** an implementation of disk-backed streaming.
 
+## UI: local physical scale for world maps
+
+A new Google Maps-style scale overlay appears at the lower left of the
+2D Aetherys world-map canvas. Its values track zoom continuously up to
+1,000,000× and account for latitude and view rotation. It is deliberately
+**not** drawn for regular VectorCraft documents or in presentation mode,
+and does not become part of saved/exported vector artwork.
+
+The scale is meaningful only after the fictional planet's radius is
+defined under **File → Document Setup → World**. No Earth-size fallback is
+guessed. A missing radius displays a setup hint. The field is persisted
+in existing world metadata with undo/redo as part of the normal document
+setup command. Values use a local spherical approximation and should not
+be confused with measured polygon areas.
+
+See [dynamic world scale bar](aetherys-scale-bar.md) for formulas,
+limitations and macOS validation commands.
+
 ## Phase 1.8: geographic seam – first utility, not complete editor integration
 
 `WorldMap::project_seamless_polyline` now splits **open geographic polylines**
