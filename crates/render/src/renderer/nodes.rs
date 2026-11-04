@@ -630,6 +630,9 @@ impl Renderer {
                 entry.spatial = Some(index);
                 self.stats.spatial_indices_built += 1;
             }
+            // Enforce the cache budget after each build as well as at frame end:
+            // a single frame may draw many large geographic layers.
+            self.trim_spatial_cache_to(crate::spatial::CACHE_BUDGET);
         }
         let pad = f.px * 2.0;
         let view = f.visible.inflate(pad, pad);
