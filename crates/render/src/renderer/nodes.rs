@@ -420,7 +420,11 @@ impl Renderer {
                 self.draw_trace_view(ctx, f, children, Self::trace_view(f, n), knockout)
             }
             NodeKind::Layer { children, clip: false, .. } | NodeKind::Group { children, clip: false } => {
-                if f.doc.world_map.is_some() && children.len() >= 128 && !knockout && self.isolation_path(f).is_none() {
+                if f.doc.world_map.is_some()
+                    && (128..=crate::spatial::MAX_INDEXED_MEMBERS).contains(&children.len())
+                    && !knockout
+                    && self.isolation_path(f).is_none()
+                {
                     self.draw_spatial_children(ctx, f, n, children);
                 } else {
                     self.draw_children(ctx, f, children, knockout);
