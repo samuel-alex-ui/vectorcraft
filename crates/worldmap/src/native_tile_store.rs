@@ -14,7 +14,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{ChunkManifestError, MAX_MANIFEST_BYTES, PreviewChunkMeta, TileCacheManifest, WorldTile};
+use crate::{ChunkManifestError, MAX_MANIFEST_BYTES, PreviewChunkMeta, TileCacheManifest, WorldMap, WorldTile};
 
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const ACTIVE_MANIFEST: &str = "manifest.json";
@@ -67,6 +67,9 @@ impl TileCacheStore {
     /// If that path already exists, verify it instead of overwriting it.
     pub fn write_preview(&self, source_revision: u64, meta: &PreviewChunkMeta, bytes: &[u8]) -> Result<(), TileStoreError> {
         meta.verify(bytes)?;
+        if WorldMap::standard().tile_bounds(meta.tile).is_none() {
+            return Err(TileStoreError::InvalidManifest(ChunkManifestError::InvalidTile));
+        }
         let dest = self.root.join(meta.relative_path(source_revision));
         if dest.exists() {
             let saved = read_exact_preview(&dest, meta)?;
