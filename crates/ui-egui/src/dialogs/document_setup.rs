@@ -360,6 +360,35 @@ mod tests {
     /// Highlight Substituted Fonts is in Preferences › Type, so the General tab shows only the
     /// substituted glyphs highlight, and OK still applies.
     #[test]
+    fn world_tab_sets_physical_radius_as_one_undoable_document_edit() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.newWorldMap", json!({})).unwrap();
+        app.run("file.documentSetup", json!({})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().fields.contains_key("planetRadiusM"));
+        assert!(app.ui.dialog.as_ref().unwrap().fields["planetRadiusM"].is_null());
+        app.ui.dialog.as_mut().unwrap().fields.insert("tab".into(), json!("World"));
+        frame(&mut app);
+        app.ui.dialog.as_mut().unwrap().fields.insert("planetRadiusM".into(), json!(7_000_000.0));
+        crate::dialogs::confirm(&mut app).unwrap();
+        let st = app.session.active().unwrap();
+        assert_eq!(st.doc.world_map.unwrap().planet_radius_m(), Some(7_000_000.0));
+        assert_eq!(st.history.undo.len(), 1);
+        app.run("edit.undo", json!({})).unwrap();
+        assert_eq!(app.session.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+    }
+
+    #[test]
+    fn ordinary_document_setup_has_no_world_tab_or_radius_field() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
+        app.run("file.documentSetup", json!({})).unwrap();
+        assert!(!app.ui.dialog.as_ref().unwrap().fields.contains_key("planetRadiusM"));
+        frame(&mut app);
+        assert!(app.ui.dialog.is_some());
+        assert!(app.session.active().unwrap().doc.world_map.is_none());
+    }
+
+    #[test]
     fn general_tab_has_no_substituted_fonts_checkbox() {
         let mut app = VectorcraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
