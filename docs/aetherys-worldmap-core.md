@@ -60,6 +60,7 @@ cargo test -p vectorcraft-render --lib spatial_budget
 cargo test -p vectorcraft-worldmap --test seam_polyline
 cargo test -p vectorcraft-worldmap --test tiles
 cargo test -p vectorcraft-worldmap --test tile_requests
+cargo test -p vectorcraft-worldmap --test tile_cache
 cargo test -p vectorcraft-render --test world_map_fade
 cargo test -p vectorcraft-worldmap
 cargo clippy -p vectorcraft-render -p vectorcraft-worldmap --all-targets -- -D warnings
@@ -125,6 +126,25 @@ nonfinite or oversized viewports. A later asynchronous loader can prioritize
 `WorldTile` keys. Neither method creates or persists map geometry.
 These are deterministic, pure-data plans; **no asynchronous I/O or disk
 chunk loading has been added**.
+
+**Phase 1.7 preview cache foundation (new):** `TilePreviewCache` stores
+immutable, derived preview byte buffers by `WorldTile` and one explicit
+document revision. It defaults to a separate 32 MiB payload budget and
+enforces a 128 MiB maximum even if configured higher. Insertion is
+LRU-evicting, but a caller may protect the current visible tile keys so that
+speculative nearby prefetch work never expels their previews. If a buffer
+cannot fit without evicting protected entries, insertion fails, leaving
+the existing cache intact. Stale results from a previous revision are
+rejected, and switching revisions removes the previous previews. Existing
+`Arc<[u8]>` handles stay immutable even after eviction.
+
+This cache contains **derived previews only**, never the canonical SVG-like
+vector tree, editing state or save data. Its byte accounting covers resident
+preview payloads, excluding allocator overhead and references held by callers.
+It is deliberately *not* wired to the document editor or filesystem yet.
+Neither actual chunk persistence, lazy loading, nor a prefetch worker is
+implemented. The next step is a validated storage manifest, atomic save,
+undo/recovery behavior and a loader that consumes these APIs.
 
 **Do not lazy-load the existing mutable `Document.layers` graph without
 designing document consistency and undo first.** Current documents hold nodes
