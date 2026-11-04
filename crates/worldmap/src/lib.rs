@@ -8,8 +8,13 @@
 //! south = -90°. The antimeridian has two *display* edges (x=0 and x=width).
 //! Callers must split geometries that cross this seam before drawing them.
 
+mod chunk_manifest;
 mod tile_cache;
 mod tiles;
+pub use chunk_manifest::{
+    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_MANIFEST_ENTRIES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA,
+    TileCacheManifest,
+};
 pub use tile_cache::{DEFAULT_TILE_PREVIEW_BUDGET, MAX_TILE_PREVIEW_BUDGET, TilePreviewCache};
 pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
 
