@@ -50,9 +50,7 @@ impl Branch {
             return Self { bounds, left: None, right: None, items: items.iter().map(|x| x.index).collect() };
         }
         let horizontal = bounds.x1 - bounds.x0 >= bounds.y1 - bounds.y0;
-        items.sort_unstable_by(|a, b| {
-            if horizontal { a.bounds.x0.total_cmp(&b.bounds.x0) } else { a.bounds.y0.total_cmp(&b.bounds.y0) }
-        });
+        items.sort_unstable_by(|a, b| if horizontal { a.bounds.x0.total_cmp(&b.bounds.x0) } else { a.bounds.y0.total_cmp(&b.bounds.y0) });
         let middle = items.len() / 2;
         let (left, right) = items.split_at_mut(middle);
         Self { bounds, left: Some(Box::new(Self::build(left))), right: Some(Box::new(Self::build(right))), items: Vec::new() }

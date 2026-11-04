@@ -71,11 +71,7 @@ fn indexed_world_map_still_respects_zoom_faded_layers() {
     let layer = doc.layers[0].id;
     doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
     let mut renderer = Renderer::new();
-    let opts = |zoom| RenderOptions {
-        background: Some([255, 255, 255, 255]),
-        world_map_zoom: Some(zoom),
-        ..Default::default()
-    };
+    let opts = |zoom| RenderOptions { background: Some([255, 255, 255, 255]), world_map_zoom: Some(zoom), ..Default::default() };
     let visible = renderer.render(&doc, 128, 128, Affine::IDENTITY, &opts(100.0));
     assert_eq!(visible.pixel(12, 12), [255, 0, 0, 255]);
     assert!(renderer.stats.spatial_indices_built > 0);

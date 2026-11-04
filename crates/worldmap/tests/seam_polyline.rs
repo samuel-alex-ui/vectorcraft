@@ -29,13 +29,9 @@ fn eastward_and_westward_crossings_have_matching_seam_endpoints() {
 #[test]
 fn repeated_crossings_do_not_create_long_lines_on_the_flat_map() {
     let map = WorldMap::standard();
-    let pieces = map.project_seamless_polyline(&[
-        point(170.0, 5.0),
-        point(-175.0, 10.0),
-        point(178.0, 15.0),
-        point(-170.0, 20.0),
-        point(-165.0, 30.0),
-    ]).unwrap();
+    let pieces = map
+        .project_seamless_polyline(&[point(170.0, 5.0), point(-175.0, 10.0), point(178.0, 15.0), point(-170.0, 20.0), point(-165.0, 30.0)])
+        .unwrap();
     assert_eq!(pieces.len(), 4);
     for piece in &pieces {
         for segment in piece.windows(2) {
