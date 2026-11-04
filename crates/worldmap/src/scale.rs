@@ -52,7 +52,7 @@ impl WorldMap {
         let local_factor = (latitude.cos() * cos_rotation).hypot(sin_rotation);
         let metres_per_screen_point = TAU * radius / width / zoom * local_factor;
         let maximum = metres_per_screen_point * target_screen_points;
-        if !metres_per_screen_point.is_finite() || metres_per_screen_point <= 0.0 || !maximum.is_finite() || maximum <= 0.0 {
+        if local_factor <= 1e-12 || !metres_per_screen_point.is_finite() || metres_per_screen_point <= 0.0 || !maximum.is_finite() || maximum <= 0.0 {
             return None;
         }
         // Quantize in metres to familiar 1, 2, 5, 10, 20, 50… bars.
