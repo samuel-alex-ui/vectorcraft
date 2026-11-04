@@ -338,3 +338,47 @@ fn restamp_scripts(d: &mut Document) {
         }
     }
 }
+
+#[cfg(test)]
+mod world_scale_tests {
+    use serde_json::json;
+
+    use super::Session;
+
+    #[test]
+    fn planet_radius_can_be_set_cleared_and_undone_without_changing_geography() {
+        let mut s = Session::new();
+        s.execute("file.newWorldMap", &json!({})).unwrap();
+        assert_eq!(s.execute("document.setup", &json!({})).unwrap()["planetRadiusM"], json!(null));
+        let original = s.active().unwrap().doc.world_map.unwrap();
+        let before = s.active().unwrap().history.undo.len();
+        let result = s.execute("document.setup", &json!({"planetRadiusM": 8_000_000.0})).unwrap();
+        assert_eq!(result["planetRadiusM"], json!(8_000_000.0));
+        let revised = s.active().unwrap().doc.world_map.unwrap();
+        assert_eq!(revised.size(), original.size());
+        assert_eq!(revised.planet_radius_m(), Some(8_000_000.0));
+        assert_eq!(s.active().unwrap().history.undo.len(), before + 1);
+        s.execute("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map, Some(original));
+        s.execute("edit.redo", &json!({})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map, Some(revised));
+        s.execute("document.setup", &json!({"planetRadiusM": null})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+    }
+
+    #[test]
+    fn radius_validation_rejects_invalid_values_and_nonworld_documents() {
+        let mut s = Session::new();
+        s.execute("file.newWorldMap", &json!({})).unwrap();
+        for invalid in [json!(0), json!(-7), json!("earth"), json!([])] {
+            // Every non-null invalid candidate must fail without history changes.
+            let before = s.active().unwrap().history.undo.len();
+            assert!(s.execute("document.setup", &json!({"planetRadiusM": invalid})).is_err());
+            assert_eq!(s.active().unwrap().history.undo.len(), before);
+            assert_eq!(s.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+        }
+        s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
+        assert!(s.execute("document.setup", &json!({"planetRadiusM": 6_371_000.0})).is_err());
+        assert!(s.execute("document.setup", &json!({})).unwrap().get("planetRadiusM").is_none());
+    }
+}
