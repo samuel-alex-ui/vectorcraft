@@ -9,7 +9,7 @@
 //! Callers must split geometries that cross this seam before drawing them.
 
 mod tiles;
-pub use tiles::{MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, WorldTile};
+pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
 
 /// Recommended initial world-map artboard dimensions, in VectorCraft points.
 /// These fit a conventional illustration document while preserving 2:1.
