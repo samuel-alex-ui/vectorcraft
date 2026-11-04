@@ -66,6 +66,56 @@ fn spatial_index_is_reused_between_pan_frames_without_changing_art() {
 }
 
 #[test]
+fn rotated_and_extreme_zoom_views_match_legacy_rendering() {
+    let indexed = grid(320);
+    let mut ordinary = indexed.clone();
+    ordinary.world_map = None;
+    let opts = RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    let views = [
+        Affine::translate((-60.0, 15.0)) * Affine::rotate(0.32),
+        Affine::translate((300.0, -100.0)) * Affine::rotate(-0.6),
+        // A microscopic viewport near one of the map's many rectangles.
+        Affine::translate((-36_000_000.0, -36_000_000.0)) * Affine::scale(1_000_000.0),
+    ];
+    let mut indexed_renderer = Renderer::new();
+    let mut reference_renderer = Renderer::new();
+    for (i, view) in views.into_iter().enumerate() {
+        let actual = indexed_renderer.render(&indexed, 96, 96, view, &opts).pixels;
+        let expected = reference_renderer.render(&ordinary, 96, 96, view, &opts).pixels;
+        assert_eq!(actual, expected, "indexed and reference render differ at transform {i}");
+    }
+}
+
+#[test]
+fn overlapping_objects_preserve_original_painter_order() {
+    let mut indexed = Document::new(1000.0, 500.0);
+    indexed.world_map = Some(WorldMap::standard());
+    let layer = indexed.layers[0].id;
+    for i in 0..320 {
+        let x = 10.0 + (i % 20) as f64 * 5.0;
+        let y = 10.0 + (i / 20) as f64 * 5.0;
+        let color = if i % 2 == 0 { Color::rgb(0.0, 1.0, 0.0) } else { Color::rgb(1.0, 0.0, 0.0) };
+        let path = Node::path(
+            indexed.alloc_id(),
+            shapes::rectangle(Rect::new(x, y, x + 25.0, y + 25.0)),
+            Appearance::basic(Paint::solid(color), Paint::None, 0.0),
+        );
+        indexed.insert(Some(layer), 0, path).unwrap();
+    }
+    let mut ordinary = indexed.clone();
+    ordinary.world_map = None;
+    let mut fast = Renderer::new();
+    let mut baseline = Renderer::new();
+    for (dx, dy) in [(0.0, 0.0), (35.0, 18.0), (90.0, 52.0)] {
+        assert_eq!(
+            render(&mut fast, &indexed, dx, dy),
+            render(&mut baseline, &ordinary, dx, dy),
+            "layer order changed under spatial filtering"
+        );
+    }
+}
+
+#[test]
 fn indexed_world_map_still_respects_zoom_faded_layers() {
     let mut doc = grid(320);
     let layer = doc.layers[0].id;
