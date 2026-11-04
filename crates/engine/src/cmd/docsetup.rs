@@ -77,7 +77,9 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
         let edited = match value {
             Value::Null => base,
             _ => {
-                let radius = value.as_f64().filter(|radius| radius.is_finite() && *radius > 0.0)
+                let radius = value
+                    .as_f64()
+                    .filter(|radius| radius.is_finite() && *radius > 0.0)
                     .ok_or_else(|| bad(C, "planetRadiusM must be a positive finite number of metres, or null"))?;
                 base.with_planet_radius_m(radius).map_err(|_| bad(C, "invalid planet radius"))?
             }

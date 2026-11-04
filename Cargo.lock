@@ -6581,6 +6581,7 @@ dependencies = [
  "vectorcraft-text",
  "vectorcraft-three-d",
  "vectorcraft-tools",
+ "vectorcraft-worldmap",
  "wat",
  "web-time",
 ]

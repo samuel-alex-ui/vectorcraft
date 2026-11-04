@@ -28,13 +28,7 @@ impl WorldMap {
     /// Returns None until a planet radius has been configured. Also returns
     /// None for invalid/extreme coordinates or for an undefined horizontal
     /// distance right at the poles. No document data is modified.
-    pub fn scale_bar(
-        &self,
-        at: CanvasPoint,
-        zoom: f64,
-        rotation_degrees: f64,
-        target_screen_points: f64,
-    ) -> Option<ScaleBar> {
+    pub fn scale_bar(&self, at: CanvasPoint, zoom: f64, rotation_degrees: f64, target_screen_points: f64) -> Option<ScaleBar> {
         let radius = self.planet_radius_m?;
         let (width, height) = self.size();
         if ![at.x, at.y, zoom, rotation_degrees, target_screen_points].iter().all(|n| n.is_finite())
@@ -62,14 +56,10 @@ impl WorldMap {
         if !power.is_finite() || power <= 0.0 {
             return None;
         }
-        let nice = [5.0, 2.0, 1.0]
-            .iter()
-            .map(|multiple| multiple * power)
-            .find(|d| d.is_finite() && *d > 0.0 && *d <= maximum)
-            .or_else(|| {
-                let lower = power / 10.0;
-                (lower > 0.0).then_some(5.0 * lower)
-            })?;
+        let nice = [5.0, 2.0, 1.0].iter().map(|multiple| multiple * power).find(|d| d.is_finite() && *d > 0.0 && *d <= maximum).or_else(|| {
+            let lower = power / 10.0;
+            (lower > 0.0).then_some(5.0 * lower)
+        })?;
         let bar_width = nice / metres_per_screen_point;
         if !bar_width.is_finite() || bar_width <= 0.0 {
             return None;
