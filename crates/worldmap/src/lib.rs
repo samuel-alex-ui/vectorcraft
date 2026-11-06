@@ -8,6 +8,21 @@
 //! south = -90°. The antimeridian has two *display* edges (x=0 and x=width).
 //! Callers must split geometries that cross this seam before drawing them.
 
+mod chunk_manifest;
+#[cfg(not(target_arch = "wasm32"))]
+mod native_tile_store;
+mod scale;
+mod tile_cache;
+mod tiles;
+pub use chunk_manifest::{
+    ChunkManifestError, MAX_MANIFEST_BYTES, MAX_MANIFEST_ENTRIES, MAX_PREVIEW_CHUNK_BYTES, PreviewChunkMeta, TILE_CACHE_SCHEMA, TileCacheManifest,
+};
+#[cfg(not(target_arch = "wasm32"))]
+pub use native_tile_store::{TileCacheStore, TileStoreError};
+pub use scale::ScaleBar;
+pub use tile_cache::{DEFAULT_TILE_PREVIEW_BUDGET, MAX_TILE_PREVIEW_BUDGET, TilePreviewCache};
+pub use tiles::{MAX_PREFETCH_MARGIN, MAX_QUERY_TILES, MAX_TILE_LEVEL, TileError, TileRequestPlan, WorldTile};
+
 /// Recommended initial world-map artboard dimensions, in VectorCraft points.
 /// These fit a conventional illustration document while preserving 2:1.
 pub const DEFAULT_WIDTH: f64 = 1000.0;
@@ -99,6 +114,63 @@ impl WorldMap {
             return Err(MapError::OutsideCanvas);
         }
         Ok(GeographicPoint { longitude_deg: p.x / self.width * 360.0 - 180.0, latitude_deg: 90.0 - p.y / self.height * 180.0 })
+    }
+
+    /// Project a geographic open polyline without connecting across the flat map's seam.
+    ///
+    /// A longitude jump larger than 180 degrees follows the shorter arc over the
+    /// antimeridian. The line is split into two independent canvas polylines at
+    /// x=0 and x=width, with linearly interpolated latitude at the crossing.
+    /// This is intentionally for *open polylines*: filled polygons require a
+    /// separate topology-aware clipping algorithm to preserve their fill rule.
+    /// The original points are not changed or duplicated in the document.
+    pub fn project_seamless_polyline(&self, points: &[GeographicPoint]) -> Result<Vec<Vec<CanvasPoint>>, MapError> {
+        let Some(first) = points.first().copied() else { return Ok(Vec::new()) };
+        let mut current = vec![self.project(first)?];
+        let mut result = Vec::new();
+        for pair in points.windows(2) {
+            let [from, to] = pair else { continue };
+            let (from, to) = (*from, *to);
+            let endpoint = self.project(to)?;
+            let delta = to.longitude_deg - from.longitude_deg;
+            if delta.abs() <= 180.0 {
+                current.push(endpoint);
+                continue;
+            }
+            // +180 and -180 refer to the same meridian. There is no line to
+            // draw between the opposing *flat* edges in that degenerate case.
+            if delta.abs() == 360.0 {
+                if current.len() > 1 {
+                    result.push(std::mem::take(&mut current));
+                }
+                current = vec![endpoint];
+                continue;
+            }
+            let eastward = delta < 0.0;
+            let wrapped_end = to.longitude_deg + if eastward { 360.0 } else { -360.0 };
+            let seam = if eastward { 180.0 } else { -180.0 };
+            let t = ((seam - from.longitude_deg) / (wrapped_end - from.longitude_deg)).clamp(0.0, 1.0);
+            let latitude = from.latitude_deg + t * (to.latitude_deg - from.latitude_deg);
+            let y = (90.0 - latitude) / 180.0 * self.height;
+            let before = CanvasPoint { x: if eastward { self.width } else { 0.0 }, y };
+            let after = CanvasPoint { x: if eastward { 0.0 } else { self.width }, y };
+            // At an exact seam endpoint, avoid adding a zero-length segment;
+            // a zero-length stroked path can still produce visible end caps.
+            if current.last() != Some(&before) {
+                current.push(before);
+            }
+            if current.len() > 1 {
+                result.push(std::mem::take(&mut current));
+            }
+            current = vec![after];
+            if endpoint != after {
+                current.push(endpoint);
+            }
+        }
+        if current.len() > 1 || points.len() == 1 {
+            result.push(current);
+        }
+        Ok(result)
     }
 }
 

@@ -1,0 +1,211 @@
+//! Integration tests for the indexed world-map rendering path.
+//! These assert exact pixel equivalence with the existing ordinary-document path.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+use vectorcraft_color::{Color, Paint};
+use vectorcraft_doc::{Appearance, Document, Node, WorldMap, ZoomFade};
+use vectorcraft_geom::{Affine, PathData, Point, Rect, SubPath, shapes};
+use vectorcraft_render::{RenderOptions, Renderer};
+
+fn grid(count: usize) -> Document {
+    let mut doc = Document::new(1000.0, 500.0);
+    doc.world_map = Some(WorldMap::standard());
+    let layer = doc.layers[0].id;
+    // Keep even the 8,192-object benchmark inside the geographic reference.
+    let (columns, spacing, size) = if count > 1024 { (128, 7.0, 6.0) } else { (32, 28.0, 20.0) };
+    for i in 0..count {
+        let x = 7.0 + (i % columns) as f64 * spacing;
+        let y = 7.0 + (i / columns) as f64 * spacing;
+        let paint = if i % 2 == 0 { Color::rgb(1.0, 0.0, 0.0) } else { Color::rgb(0.0, 0.3, 1.0) };
+        let appearance = Appearance::basic(Paint::solid(paint), Paint::None, 0.0);
+        let n = Node::path(doc.alloc_id(), shapes::rectangle(Rect::new(x, y, x + size, y + size)), appearance);
+        doc.insert(Some(layer), 0, n).unwrap();
+    }
+    doc
+}
+
+fn render(renderer: &mut Renderer, doc: &Document, dx: f64, dy: f64) -> Vec<u8> {
+    let opts = RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    renderer.render(doc, 128, 128, Affine::translate((-dx, -dy)), &opts).pixels
+}
+
+#[test]
+fn indexed_map_matches_unindexed_renderer_at_multiple_viewports() {
+    let mut indexed = grid(320);
+    let mut ordinary = indexed.clone();
+    ordinary.world_map = None;
+    let mut fast = Renderer::new();
+    let mut reference = Renderer::new();
+    for (dx, dy) in [(0.0, 0.0), (220.0, 40.0), (600.0, 200.0), (850.0, 250.0)] {
+        let actual = render(&mut fast, &indexed, dx, dy);
+        let expected = render(&mut reference, &ordinary, dx, dy);
+        assert_eq!(actual, expected, "different pixels at viewport {dx}, {dy}");
+        assert!(fast.stats.spatial_nodes_skipped > 200, "spatial query did not prune offscreen nodes");
+    }
+
+    // Structural edits replace the parent's Arc; an old index must never hide new art.
+    let layer = indexed.layers[0].id;
+    let green = Appearance::basic(Paint::solid(Color::rgb(0.0, 1.0, 0.0)), Paint::None, 0.0);
+    let inserted = Node::path(indexed.alloc_id(), shapes::rectangle(Rect::new(55.0, 55.0, 90.0, 90.0)), green);
+    indexed.insert(Some(layer), 0, inserted).unwrap();
+    ordinary = indexed.clone();
+    ordinary.world_map = None;
+    assert_eq!(render(&mut fast, &indexed, 0.0, 0.0), render(&mut reference, &ordinary, 0.0, 0.0));
+    assert!(fast.stats.spatial_indices_built > 0, "edited layer index was not rebuilt");
+}
+
+#[test]
+fn spatial_index_is_reused_between_pan_frames_without_changing_art() {
+    let doc = grid(512);
+    let mut renderer = Renderer::new();
+    render(&mut renderer, &doc, 0.0, 0.0);
+    assert!(renderer.stats.spatial_indices_built > 0);
+    render(&mut renderer, &doc, 100.0, 0.0);
+    assert_eq!(renderer.stats.spatial_indices_built, 0, "unchanged node rebuilt its index");
+    assert!(renderer.stats.spatial_nodes_skipped > 0);
+}
+
+#[test]
+fn rotated_and_extreme_zoom_views_match_legacy_rendering() {
+    let indexed = grid(320);
+    let mut ordinary = indexed.clone();
+    ordinary.world_map = None;
+    let opts = RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    let views = [
+        Affine::translate((-60.0, 15.0)) * Affine::rotate(0.32),
+        Affine::translate((300.0, -100.0)) * Affine::rotate(-0.6),
+        // A microscopic viewport near one of the map's many rectangles.
+        Affine::translate((-36_000_000.0, -36_000_000.0)) * Affine::scale(1_000_000.0),
+    ];
+    let mut indexed_renderer = Renderer::new();
+    let mut reference_renderer = Renderer::new();
+    for (i, view) in views.into_iter().enumerate() {
+        let actual = indexed_renderer.render(&indexed, 96, 96, view, &opts).pixels;
+        let expected = reference_renderer.render(&ordinary, 96, 96, view, &opts).pixels;
+        assert_eq!(actual, expected, "indexed and reference render differ at transform {i}");
+    }
+}
+
+#[test]
+fn overlapping_objects_preserve_original_painter_order() {
+    let mut indexed = Document::new(1000.0, 500.0);
+    indexed.world_map = Some(WorldMap::standard());
+    let layer = indexed.layers[0].id;
+    for i in 0..320 {
+        let x = 10.0 + (i % 20) as f64 * 5.0;
+        let y = 10.0 + (i / 20) as f64 * 5.0;
+        let color = if i % 2 == 0 { Color::rgb(0.0, 1.0, 0.0) } else { Color::rgb(1.0, 0.0, 0.0) };
+        let path = Node::path(
+            indexed.alloc_id(),
+            shapes::rectangle(Rect::new(x, y, x + 25.0, y + 25.0)),
+            Appearance::basic(Paint::solid(color), Paint::None, 0.0),
+        );
+        indexed.insert(Some(layer), 0, path).unwrap();
+    }
+    let mut ordinary = indexed.clone();
+    ordinary.world_map = None;
+    let mut fast = Renderer::new();
+    let mut baseline = Renderer::new();
+    for (dx, dy) in [(0.0, 0.0), (35.0, 18.0), (90.0, 52.0)] {
+        assert_eq!(render(&mut fast, &indexed, dx, dy), render(&mut baseline, &ordinary, dx, dy), "layer order changed under spatial filtering");
+    }
+}
+
+#[test]
+fn indexed_world_map_still_respects_zoom_faded_layers() {
+    let mut doc = grid(320);
+    let layer = doc.layers[0].id;
+    doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(None, Some([200.0, 500.0])).unwrap());
+    let mut renderer = Renderer::new();
+    let opts = |zoom| RenderOptions { background: Some([255, 255, 255, 255]), world_map_zoom: Some(zoom), ..Default::default() };
+    let visible = renderer.render(&doc, 128, 128, Affine::IDENTITY, &opts(100.0));
+    assert_eq!(visible.pixel(12, 12), [255, 0, 0, 255]);
+    assert!(renderer.stats.spatial_indices_built > 0);
+    let invisible = renderer.render(&doc, 128, 128, Affine::IDENTITY, &opts(500.0));
+    assert_eq!(invisible.pixel(12, 12), [255, 255, 255, 255]);
+    assert_eq!(renderer.stats.spatial_indices_built, 0, "fully faded layer should not be traversed");
+}
+
+/// A single filled coastline is intentionally *not* made faster by a
+/// per-group index. Diagnose this separate bottleneck before implementing
+/// any path splitting that might change holes, fill rules, or editing.
+#[test]
+#[ignore = "manual 32,000-vertex filled-coastline benchmark; not a CI timing assertion"]
+fn benchmark_one_huge_filled_coastline() {
+    use std::time::Instant;
+
+    let mut doc = Document::new(1000.0, 500.0);
+    doc.world_map = Some(WorldMap::standard());
+    let layer = doc.layers[0].id;
+    let vertices = 32_000usize;
+    let mut coast = Vec::with_capacity(vertices + 2);
+    for i in 0..vertices {
+        let x = i as f64 * 1000.0 / (vertices - 1) as f64;
+        let y = 180.0 + (i as f64 * 0.091).sin() * 16.0 + (i as f64 * 0.017).cos() * 10.0;
+        coast.push(Point::new(x, y));
+    }
+    coast.push(Point::new(1000.0, 490.0));
+    coast.push(Point::new(0.0, 490.0));
+    let path = Node::path(
+        doc.alloc_id(),
+        PathData::single(SubPath::polyline(&coast, true)),
+        Appearance::basic(Paint::solid(Color::rgb(0.25, 0.65, 0.35)), Paint::None, 0.0),
+    );
+    doc.insert(Some(layer), 0, path).unwrap();
+    let mut ordinary = doc.clone();
+    ordinary.world_map = None;
+    let views = [(0.0, 150.0), (240.0, 175.0), (520.0, 190.0), (840.0, 165.0)];
+    let mut indexed = Renderer::new();
+    let mut legacy = Renderer::new();
+    for (dx, dy) in views {
+        let a = render(&mut indexed, &doc, dx, dy);
+        let b = render(&mut legacy, &ordinary, dx, dy);
+        assert_eq!(a, b, "filled coastline differs at ({dx}, {dy})");
+    }
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut indexed, &doc, dx, dy);
+    }
+    let map_time = start.elapsed();
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut legacy, &ordinary, dx, dy);
+    }
+    let legacy_time = start.elapsed();
+    eprintln!(
+        "one filled coast (32,000 vertices): world-map {map_time:?}, ordinary {legacy_time:?}, indexed children skipped: {}",
+        indexed.stats.spatial_nodes_skipped
+    );
+    // Report measurements; do not demand an improvement from an index that
+    // currently accelerates large *groups* but not one giant path.
+}
+
+#[test]
+#[ignore = "manual performance measurement; timing depends on the Mac and build profile"]
+fn benchmark_world_map_panning_against_reference() {
+    use std::time::Instant;
+
+    let doc = grid(8192);
+    let mut ordinary = doc.clone();
+    ordinary.world_map = None;
+    let mut fast = Renderer::new();
+    let mut reference = Renderer::new();
+    let views = [(0.0, 0.0), (100.0, 50.0), (400.0, 120.0), (650.0, 200.0)];
+    // Warm up both caches; compare the same camera positions.
+    for (dx, dy) in views {
+        let _ = render(&mut fast, &doc, dx, dy);
+        let _ = render(&mut reference, &ordinary, dx, dy);
+    }
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut fast, &doc, dx, dy);
+    }
+    let accelerated = start.elapsed();
+    let start = Instant::now();
+    for (dx, dy) in views {
+        let _ = render(&mut reference, &ordinary, dx, dy);
+    }
+    let baseline = start.elapsed();
+    eprintln!("world-map indexed: {accelerated:?}; legacy traversal: {baseline:?}; nodes skipped on last view: {}", fast.stats.spatial_nodes_skipped);
+    // A benchmark is diagnostic, not a flaky timing-based pass/fail assertion.
+}

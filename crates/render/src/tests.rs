@@ -26,6 +26,7 @@ mod objectfx;
 mod placed_document;
 mod rasterize;
 mod setup;
+mod spatial_budget;
 mod strokegradient;
 mod tileedge;
 mod viewraster;

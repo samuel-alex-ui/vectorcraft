@@ -6581,6 +6581,7 @@ dependencies = [
  "vectorcraft-text",
  "vectorcraft-three-d",
  "vectorcraft-tools",
+ "vectorcraft-worldmap",
  "wat",
  "web-time",
 ]
@@ -6608,6 +6609,7 @@ dependencies = [
 name = "vectorcraft-worldmap"
 version = "0.21.0"
 dependencies = [
+ "crc32fast",
  "serde",
  "serde_json",
 ]

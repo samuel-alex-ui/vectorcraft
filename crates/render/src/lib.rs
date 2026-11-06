@@ -206,6 +206,7 @@ mod geometry;
 mod node_checks;
 mod options;
 mod renderer;
+mod spatial;
 mod text_geom;
 mod threads;
 

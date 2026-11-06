@@ -3,7 +3,7 @@
 
 use serde_json::{Map, Value, json};
 use vectorcraft_doc::setup::{DEFAULT_FLATTENER, GRID_COLOR_PRESETS, LANGUAGES, MAX_BLEED};
-use vectorcraft_doc::{Background, CharPosition, CharStyle, DocSetup, Document, ExportText, GridSize, NodeKind, Quotes, ScriptMetrics};
+use vectorcraft_doc::{Background, CharPosition, CharStyle, DocSetup, Document, ExportText, GridSize, NodeKind, Quotes, ScriptMetrics, WorldMap};
 
 use super::flatten::{FlattenOptions, FlattenerPreset};
 
@@ -27,7 +27,7 @@ pub fn specs() -> Vec<CommandSpec> {
 pub(crate) fn setup_json(d: &Document) -> Value {
     let s = &d.setup;
     let pair = |p: [char; 2]| p.iter().collect::<String>();
-    json!({
+    let mut settings = json!({
         "units": d.units.label(),
         "bleed": s.bleed,
         "outlineImages": s.outline_images,
@@ -46,7 +46,13 @@ pub(crate) fn setup_json(d: &Document) -> Value {
         "smallCapsSize": s.small_caps_size,
         "exportText": s.export_text.id(),
         "backgroundContents": s.background.id(),
-    })
+    });
+    // Only a geographic world has a physical planet radius; null is
+    // deliberately distinct from assuming an Earth-sized planet.
+    if let Some(world) = d.world_map {
+        settings["planetRadiusM"] = json!(world.planet_radius_m());
+    }
+    settings
 }
 
 fn setup(s: &mut Session, p: &Value) -> Result<Value> {
@@ -62,6 +68,26 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let mut new = st.doc.setup.clone();
     let mut units = st.doc.units;
+    // World metadata is edited in the same single undo transaction as
+    // regular Document Setup, but never added to ordinary documents.
+    let updated_world = if let Some(value) = o.get("planetRadiusM") {
+        let world = st.doc.world_map.ok_or_else(|| bad(C, "planetRadiusM is only valid for world maps"))?;
+        let (width, height) = world.size();
+        let base = WorldMap::new(width, height).map_err(|_| bad(C, "invalid world dimensions"))?;
+        let edited = match value {
+            Value::Null => base,
+            _ => {
+                let radius = value
+                    .as_f64()
+                    .filter(|radius| radius.is_finite() && *radius > 0.0)
+                    .ok_or_else(|| bad(C, "planetRadiusM must be a positive finite number of metres, or null"))?;
+                base.with_planet_radius_m(radius).map_err(|_| bad(C, "invalid planet radius"))?
+            }
+        };
+        Some(edited)
+    } else {
+        None
+    };
     // The language goes first: it picks its quotes, which `quotes` may then override.
     let current = st.doc.setup.quotes;
     for (k, v) in o.iter().filter(|(k, _)| *k == "language").chain(o.iter().filter(|(k, _)| *k != "language")) {
@@ -69,7 +95,9 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
         if k == "quotes" && o.contains_key("language") && quotes_param(v, current)? == current {
             continue;
         }
-        apply(&mut new, &mut units, k, v, &s.prefs.flattener_presets)?;
+        if k != "planetRadiusM" {
+            apply(&mut new, &mut units, k, v, &s.prefs.flattener_presets)?;
+        }
     }
     // An older build's reply passed back still applies; the moved key only gets a warning.
     let reply = |d: &Document| {
@@ -82,7 +110,7 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
         r
     };
     let st = s.doc()?;
-    if new == st.doc.setup && units == st.doc.units {
+    if new == st.doc.setup && units == st.doc.units && updated_world.is_none_or(|world| Some(world) == st.doc.world_map) {
         return Ok(reply(&st.doc));
     }
     s.edit("Document Setup", |d, _| {
@@ -90,6 +118,9 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
             (new.superscript, new.subscript, new.small_caps_size) != (d.setup.superscript, d.setup.subscript, d.setup.small_caps_size);
         d.setup = new;
         d.units = units;
+        if let Some(world) = updated_world {
+            d.world_map = Some(world);
+        }
         if scripts_changed {
             restamp_scripts(d);
         }
@@ -307,5 +338,49 @@ fn restamp_scripts(d: &mut Document) {
         if let Some(v) = def.attrs.get_mut("small_caps").filter(|v| v.is_number()) {
             *v = json!(setup.small_caps_size);
         }
+    }
+}
+
+#[cfg(test)]
+mod world_scale_tests {
+    use serde_json::json;
+
+    use super::Session;
+
+    #[test]
+    fn planet_radius_can_be_set_cleared_and_undone_without_changing_geography() {
+        let mut s = Session::new();
+        s.execute("file.newWorldMap", &json!({})).unwrap();
+        assert_eq!(s.execute("document.setup", &json!({})).unwrap()["planetRadiusM"], json!(null));
+        let original = s.active().unwrap().doc.world_map.unwrap();
+        let before = s.active().unwrap().history.undo.len();
+        let result = s.execute("document.setup", &json!({"planetRadiusM": 8_000_000.0})).unwrap();
+        assert_eq!(result["planetRadiusM"], json!(8_000_000.0));
+        let revised = s.active().unwrap().doc.world_map.unwrap();
+        assert_eq!(revised.size(), original.size());
+        assert_eq!(revised.planet_radius_m(), Some(8_000_000.0));
+        assert_eq!(s.active().unwrap().history.undo.len(), before + 1);
+        s.execute("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map, Some(original));
+        s.execute("edit.redo", &json!({})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map, Some(revised));
+        s.execute("document.setup", &json!({"planetRadiusM": null})).unwrap();
+        assert_eq!(s.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+    }
+
+    #[test]
+    fn radius_validation_rejects_invalid_values_and_nonworld_documents() {
+        let mut s = Session::new();
+        s.execute("file.newWorldMap", &json!({})).unwrap();
+        for invalid in [json!(0), json!(-7), json!("earth"), json!([])] {
+            // Every non-null invalid candidate must fail without history changes.
+            let before = s.active().unwrap().history.undo.len();
+            assert!(s.execute("document.setup", &json!({"planetRadiusM": invalid})).is_err());
+            assert_eq!(s.active().unwrap().history.undo.len(), before);
+            assert_eq!(s.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+        }
+        s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
+        assert!(s.execute("document.setup", &json!({"planetRadiusM": 6_371_000.0})).is_err());
+        assert!(s.execute("document.setup", &json!({})).unwrap().get("planetRadiusM").is_none());
     }
 }

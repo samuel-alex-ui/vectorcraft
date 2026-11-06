@@ -16,6 +16,7 @@ use crate::{VectorcraftApp, widgets};
 
 pub(super) const KIND: &str = "documentSetup";
 const TABS: [&str; 3] = ["General", "Transparency", "Type"];
+const WORLD_TABS: [&str; 4] = ["General", "Transparency", "Type", "World"];
 /// Dialog-only fields `document.setup` doesn't take.
 const UI_ONLY: [&str; 2] = ["tab", "bleedLinked"];
 pub(super) const LABEL: f32 = 130.0;
@@ -43,9 +44,10 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 }
 
 fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
-    let tab = TABS.iter().position(|t| *t == d.str("tab")).unwrap_or(0);
-    if let Some(i) = widgets::tab_bar(ui, &TABS, tab) {
-        d.fields.insert("tab".into(), json!(TABS[i]));
+    let tabs: &[&str] = if d.fields.contains_key("planetRadiusM") { &WORLD_TABS } else { &TABS };
+    let tab = tabs.iter().position(|t| *t == d.str("tab")).unwrap_or(0);
+    if let Some(i) = widgets::tab_bar(ui, tabs, tab) {
+        d.fields.insert("tab".into(), json!(tabs[i]));
     }
     ui.add_space(12.0);
     let mut close = false;
@@ -54,7 +56,8 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
         match tab {
             0 => close = general(app, ui, d),
             1 => transparency(app, ui, d),
-            _ => typography(ui, d),
+            2 => typography(ui, d),
+            _ => world_scale(ui, d),
         }
     });
     close
@@ -100,6 +103,35 @@ fn general(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool 
     check(ui, d, "outlineImages", tl!("Show Images in Outline Mode"));
     check(ui, d, "highlightSubstitutedGlyphs", tl!("Highlight Substituted Glyphs"));
     close
+}
+
+/// Explicit world-only physical scale metadata: no default radius is silently
+/// written to a fictional planet. A choice here is persisted with undo on OK.
+fn world_scale(ui: &mut egui::Ui, d: &mut Dialog) {
+    let radius = d.fields.get("planetRadiusM").and_then(Value::as_f64);
+    widgets::subheader(ui, "Physical planet size");
+    ui.label("The map represents a full sphere. Enter the planet's radius to show a real metre/kilometre scale bar while zooming.");
+    ui.add_space(12.0);
+    widgets::label_row(ui, "Planet radius:", LABEL, |ui| {
+        if let Some(mut value) = radius {
+            if ui.add(egui::DragValue::new(&mut value).speed(1_000.0).range(1.0..=1e18).suffix(" m")).changed() {
+                d.fields.insert("planetRadiusM".into(), json!(value));
+            }
+            if ui.button("Clear").clicked() {
+                d.fields.insert("planetRadiusM".into(), Value::Null);
+            }
+        } else if ui.button("Set radius").clicked() {
+            // Editable example only; no Earth-sized default is assigned unless
+            // the user explicitly activates this control and confirms.
+            d.fields.insert("planetRadiusM".into(), json!(6_371_000.0));
+        }
+    });
+    ui.add_space(10.0);
+    if radius.is_some() {
+        ui.label("Metric scale: approximate local distance at the map centre. Latitude and view rotation are taken into account.");
+    } else {
+        ui.label("Metric scale: unavailable until you set a radius. The world map and your drawings remain unchanged.");
+    }
 }
 
 fn transparency(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
@@ -327,6 +359,35 @@ mod tests {
 
     /// Highlight Substituted Fonts is in Preferences › Type, so the General tab shows only the
     /// substituted glyphs highlight, and OK still applies.
+    #[test]
+    fn world_tab_sets_physical_radius_as_one_undoable_document_edit() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.newWorldMap", json!({})).unwrap();
+        app.run("file.documentSetup", json!({})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().fields.contains_key("planetRadiusM"));
+        assert!(app.ui.dialog.as_ref().unwrap().fields["planetRadiusM"].is_null());
+        app.ui.dialog.as_mut().unwrap().fields.insert("tab".into(), json!("World"));
+        frame(&mut app);
+        app.ui.dialog.as_mut().unwrap().fields.insert("planetRadiusM".into(), json!(7_000_000.0));
+        crate::dialogs::confirm(&mut app).unwrap();
+        let st = app.session.active().unwrap();
+        assert_eq!(st.doc.world_map.unwrap().planet_radius_m(), Some(7_000_000.0));
+        assert_eq!(st.history.undo.len(), 1);
+        app.run("edit.undo", json!({})).unwrap();
+        assert_eq!(app.session.active().unwrap().doc.world_map.unwrap().planet_radius_m(), None);
+    }
+
+    #[test]
+    fn ordinary_document_setup_has_no_world_tab_or_radius_field() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
+        app.run("file.documentSetup", json!({})).unwrap();
+        assert!(!app.ui.dialog.as_ref().unwrap().fields.contains_key("planetRadiusM"));
+        frame(&mut app);
+        assert!(app.ui.dialog.is_some());
+        assert!(app.session.active().unwrap().doc.world_map.is_none());
+    }
+
     #[test]
     fn general_tab_has_no_substituted_fonts_checkbox() {
         let mut app = VectorcraftApp::new(Session::new(), Default::default());

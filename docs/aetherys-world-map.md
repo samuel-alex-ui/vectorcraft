@@ -159,3 +159,12 @@ license notices on reused VectorCraft code.
 Different geographic detail levels remain separate ordinary VectorCraft layers. An optional validated zoom-fade configuration on each world-map layer fades it in or out during the canvas view without changing stored geometry or opacity. Ordinary documents and default export rendering are unchanged. The user can adjust the ranges through existing Layer Options. See [world-map layer fading](aetherys-zoom-fade.md) for usage, limits and tests.
 
 This branch is pending local Rust compilation and review; no successful build/test outcome is claimed here.
+
+
+## Phase 1.6–1.8: World Map Core (first implementation step)
+
+A separate draft branch adds conservative spatial indexing to large world-map
+layers and a projection helper for open polylines crossing the antimeridian.
+The full disk-backed streaming model, filled-polygon seam handling and
+intra-path acceleration are **not implemented** in this first step. See
+[the implementation and validation plan](aetherys-worldmap-core.md).
