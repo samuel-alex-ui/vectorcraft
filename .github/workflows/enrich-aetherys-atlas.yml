@@ -1,0 +1,30 @@
+name: Enrich Aetherys vector atlas
+on:
+  push:
+    branches: [chatgpt/aetherys-detailed-vector-terrain]
+    paths: [scripts/enrich_aetherys_atlas.py]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/aetherys-detailed-vector-terrain
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Add editable relief and land textures
+        run: python scripts/enrich_aetherys_atlas.py
+      - name: Commit enhanced native vectorcraft map
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "maps/Aetherys World Map2.vectorcraft"
+          if ! git diff --staged --quiet; then
+            git commit -m "Generate detailed editable terrain in Aetherys world map"
+            git push
+          fi

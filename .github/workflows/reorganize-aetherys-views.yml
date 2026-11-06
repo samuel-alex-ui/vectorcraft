@@ -1,0 +1,26 @@
+name: Reorganize Aetherys map views
+on:
+  push:
+    branches:
+      - chatgpt/aetherys-detailed-vector-terrain
+    paths:
+      - .github/workflows/reorganize-aetherys-views.yml
+      - scripts/reorganize_aetherys_views.py
+permissions:
+  contents: write
+jobs:
+  reorganize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Reorganize layers
+        run: python3 scripts/reorganize_aetherys_views.py
+      - name: Save map file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "maps/Aetherys World Map2.vectorcraft"
+          git diff --cached --quiet || git commit -m "Organize Aetherys layers into views 1-5"
+          git push
