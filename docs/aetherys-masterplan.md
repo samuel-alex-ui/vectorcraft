@@ -63,7 +63,7 @@ Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besproc
 
 ## E. Inkrementelle Codex-Arbeitsfolge
 
-**Vor jeder Phase:** vorhandene Dateien, Branch, relevante PRs und Tests kontrollieren. Ein PR je kleinem Schritt, keine ungeprüften Merges in `main`. Vorgesehenes Tracking in GitHub Issues (verlinkte Aufgaben).
+**Vor jeder Phase:** vorhandene Dateien, Branch, relevante PRs und Tests kontrollieren. Ein PR je kleinem Schritt, keine ungeprüften Merges in `main`. Tracking über versionierte Einzelaufträge unter [`docs/aetherys-tasks/`](aetherys-tasks/); GitHub Issues sind in diesem Repository derzeit deaktiviert.
 
 | Reihenfolge | Paket | Ergebnis / Abnahme |
 |---|---|---|
@@ -94,10 +94,10 @@ Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besproc
 
 ## G. Zusammenarbeit
 
-1. Zuerst betreffendes Issue auswählen und offene Entscheidungen klären.
-2. Issue als konkrete Codex-Aufgabe mit Akzeptanzkriterien übergeben; Codex liest vorhandene Dokumentation und die aktuellen Branches selbst.
+1. Zuerst entsprechende Auftragsdatei unter `docs/aetherys-tasks/` auswählen und offene Entscheidungen klären.
+2. Die Auftragsdatei als konkrete Codex-Aufgabe mit Akzeptanzkriterien übergeben; Codex liest vorhandene Dokumentation und die aktuellen Branches selbst.
 3. Codex legt eigenen Branch und PR an; Tests und Einschränkungen in den PR.
-4. PR und macOS-App prüfen, erst dann mergen und Issue schließen.
+4. PR und macOS-App prüfen, erst dann mergen und die Auftragsdatei auf `Abgeschlossen` setzen.
 5. Nach jedem Schritt dieses Dokument um tatsächlichen Status/Entscheidungen ergänzen.
 
 *Historischer Leitfaden und bereits existierende Detaildokumentationen bleiben erhalten. Dieses Dokument ist die fortlaufende Roadmap, keine Behauptung, dass alle Ziele schon fertig sind.*
