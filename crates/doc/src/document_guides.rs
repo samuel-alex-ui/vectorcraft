@@ -277,6 +277,28 @@ impl Document {
     pub fn reid(&mut self, node: &Node) -> Node {
         let mut n = node.clone();
         n.id = self.alloc_id();
+        // Ordinary copies are independent geographic objects. Linking representations is explicit.
+        if let Some(e) = n.extras_if_any()
+            && let Some(g) = &mut e.geography
+        {
+            g.geographic_entity_id = None;
+            if g.is_empty() || self.world_map.is_none() {
+                e.geography = None;
+            } else if let Some(world) = self.world_map {
+                self.map_semantics.get_or_insert_with(Default::default);
+                // The schema constant is supported by WorldMap; retain the old map on a future mismatch.
+                self.world_map = Some(world.with_content_schema(Some(crate::geography::SCHEMA_VERSION)).unwrap_or(world));
+            }
+        }
+        if let Some(e) = n.extras_if_any()
+            && let Some(mask) = &mut e.mask
+        {
+            let mut geographic = false;
+            crate::swatches::walk_with_masks(&mask.art, &mut |n| geographic |= n.extras().geography.is_some());
+            if geographic {
+                mask.art = Arc::new(self.reid(&mask.art));
+            }
+        }
         if let NodeKind::Image(im) = &mut n.kind {
             self.adopt_image_pixels(im);
         }

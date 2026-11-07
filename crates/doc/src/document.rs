@@ -21,6 +21,7 @@ impl Document {
         let Self {
             version,
             world_map,
+            map_semantics,
             title,
             template,
             units,
@@ -76,6 +77,7 @@ impl Document {
             index: _,
         } = self;
         *world_map == other.world_map
+            && *map_semantics == other.map_semantics
             && *version == other.version
             && *title == other.title
             && *template == other.template
@@ -189,6 +191,7 @@ impl Document {
         let mut d = Self {
             version: FORMAT_VERSION,
             world_map: None,
+            map_semantics: None,
             title: "Untitled-1".into(),
             template: false,
             units: Unit::Points,

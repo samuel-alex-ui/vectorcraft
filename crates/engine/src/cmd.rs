@@ -31,6 +31,7 @@ pub mod flatten;
 pub mod fontfiles;
 mod fonts;
 pub(crate) mod freeform;
+mod geography;
 pub mod globaledit;
 pub(crate) mod gradient;
 pub mod gradpresets;
@@ -335,6 +336,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(shortcutset::specs());
         v.extend(importmatches::specs());
         v.extend(addons::specs());
+        v.extend(geography::specs());
         v
     })
 }

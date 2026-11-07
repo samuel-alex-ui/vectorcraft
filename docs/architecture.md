@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys Phase 1.2 geographic document metadata; parity scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (AETH-01 world-map semantics; parity scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 How VectorCraft is built today. The design rationale lives in the local, gitignored `plan/architecture.md`;
 this file describes what is committed. Day-to-day rules (clean-room, never crash, quality gates) are in
@@ -103,3 +103,18 @@ The optional typed `Document::world_map` mapping identifies world maps and is
 validated on deserialize. Existing vector node geometry remains authoritative;
 longitude/latitude are derived, without a second object store. Its reference
 rectangle is independent of artboard edits. See [the phase 1.2 decisions](aetherys-world-map.md#phase-12-persistent-geographic-document-model).
+
+## Aetherys AETH-01 (2026-11-07)
+
+Status: all 12 local CI gates passed with incremental compilation disabled; user review pending. Optional versioned
+world-map semantics use node extras and registered engine commands. Categories
+use stable IDs, properties are text, and shared geographic UUIDs do not synchronize
+geometry. Native content guards prevent silent loss in the examined older
+WorldMap reader. Ordinary documents retain their defaults. See
+[implementation contract and evidence](aetherys-semantics-design.md#7-prüfung-und-grenzen).
+This application extension changes no Illustrator area score, missing-item list
+or hour estimate; no existing parity gap or milestone is closed.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-07 | minor | AETH-01 node metadata, native content guard and engine command integration; 13,065 workspace tests and all 12 CI gates passed (incremental compilation disabled); user review pending. |
