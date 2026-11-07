@@ -48,6 +48,17 @@ Relevante PRs: [#5](https://github.com/samuel-alex-ui/vectorcraft/pull/5), [#6](
 
 **Kartendatei:** Häufig `maps/Aetherys World Map2.vectorcraft` auf den einschlägigen Feature-Branches. Nie durch generierte Rasterbilder ersetzen. Aktuelle Basisdatei und Branch vor einer Migration ausdrücklich ermitteln. Die bereits existierende Layerhierarchie kann davon abweichen; Migration erst nach Backup und Test.
 
+### AETH-00 – verifizierter Zwischenstand (2026-11-07)
+
+Die [Bestandsaufnahme](aetherys-inventory.md) fixiert aktuelle Commits, echte
+Merge-Konflikte und Kartenprüfsummen. #5–#9 sind offen; #6 und #9 sind Drafts.
+#6/#7 und #8/#9 sind inzwischen in der Kartendatei divergiert. #8 und #9
+enthalten fünf Ansichtsordner, aber noch keine flexiblen semantischen
+Detailstufen. Empfohlene App-Referenz ist aktuelles `main`; #5/#6 erst nach
+separater Validierung integrieren. Neuester Datenkandidat ist #9, die verbindliche
+Wahl gegenüber #8 bleibt nach Nutzerprüfung offen. Keine Karte verändert oder
+Phase als abgenommen markiert.
+
 ## D. Noch offene Produktentscheidungen (nicht als entschieden implementieren)
 
 1. **Identität über Detailstufen:** Wie verknüpfen wir mehrere Detailzeichnungen derselben Küste/Stadt? Empfehlung: optionale stabile geografische Objekt-ID, keine automatische Rückpropagation.
@@ -101,3 +112,9 @@ Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besproc
 5. Nach jedem Schritt dieses Dokument um tatsächlichen Status/Entscheidungen ergänzen.
 
 *Historischer Leitfaden und bereits existierende Detaildokumentationen bleiben erhalten. Dieses Dokument ist die fortlaufende Roadmap, keine Behauptung, dass alle Ziele schon fertig sind.*
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-07 | AETH-00-Bestandsaufnahme ergänzt: Code-/Datenbasis getrennt, divergierte Karten dokumentiert; Review und Nutzerprüfung offen. |

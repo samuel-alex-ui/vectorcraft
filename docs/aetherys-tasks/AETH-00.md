@@ -1,6 +1,6 @@
 # AETH-00: Bestandsaufnahme
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Bestandsaufnahme erstellt – Review und macOS-Nutzerprüfung ausstehend.
 **Reihenfolge:** 00 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -18,12 +18,22 @@ Prüfe `main`, offene PR #5–#9, Branch-Abhängigkeiten und die letzte maßgebl
 6. Tests für positive und negative Fälle, Datei-Roundtrip, Undo/Redo und normale Dokumente; `cargo fmt --all --check`, relevante `cargo test` und Clippy soweit durchführbar.
 7. Im PR dokumentieren: Dateien/Funktionen geändert, ausgeführte Tests, bekannte Einschränkungen und was **noch nicht** implementiert wurde.
 
+## Ergebnis (2026-11-07)
+
+[Bestandsaufnahme mit Featuretabelle, Branch-Abhängigkeiten, Kartenprüfsummen und Basisempfehlung](../aetherys-inventory.md). Keine Merges, Kartenänderungen oder neuen Produktentscheidungen.
+
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Ist-Zustand und Abhängigkeiten geprüft
 - [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Umsetzung isoliert und rückwärtskompatibel (nur Dokumentation)
+- [x] Tests und Format-/Build-Prüfungen dokumentiert (alle 12 CI-Gates erfolgreich)
+- [x] PR vorbereitet; Demonstration als dokumentierte Git-/Kartenbefunde, keine neue Kartendatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-07 | Bestandsaufnahme und Basisempfehlung erstellt; Review, Produktentscheidungen und Nutzerprüfung bleiben offen. |
