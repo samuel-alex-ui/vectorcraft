@@ -262,6 +262,24 @@ pub struct ToolContext<'a> {
 }
 
 impl ToolContext<'_> {
+    /// Canvas selection follows zoom-faded geographic layers without changing their stored
+    /// visibility or the hit-test behaviour of ordinary documents.
+    pub fn hit_test(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions) -> Option<vectorcraft_doc::hit::Hit> {
+        vectorcraft_doc::hit::hit_test_at_zoom(self.doc, p, opt, self.zoom)
+    }
+
+    pub fn objects_at(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions, scope: Option<NodeId>) -> Vec<NodeId> {
+        vectorcraft_doc::hit::objects_at_zoom(self.doc, p, opt, scope, self.zoom)
+    }
+
+    pub fn marquee(&self, r: vectorcraft_geom::Rect, scope: Option<NodeId>, leaves: bool) -> Vec<NodeId> {
+        vectorcraft_doc::hit::marquee_at_zoom(self.doc, r, scope, leaves, self.zoom)
+    }
+
+    pub fn selected_hidden_at(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions, selected: &[NodeId]) -> Option<NodeId> {
+        vectorcraft_doc::hit::selected_hidden_at_zoom(self.doc, p, opt, selected, self.zoom)
+    }
+
     /// Tolerance in document units for `px` screen pixels.
     pub fn tol(&self, px: f64) -> f64 {
         px / self.zoom.max(1e-9)
