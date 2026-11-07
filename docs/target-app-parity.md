@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys 1.3 camera precision evidence; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026; Units › East Asian Type acts, with Q and Ha units; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (AETH-01 world-map semantics; parity scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026; Units › East Asian Type acts, with Q and Ha units; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -1893,3 +1893,18 @@ estimate is reassessed; no full workspace CI is claimed for this phase.
 | Date | Change | Evidence |
 |---|---|---|
 | 2026-11-03 | minor | Final-boundary camera rounding; retained zoom limits; focused tests, Clippy and WASM check. |
+
+## Aetherys AETH-01 (2026-11-07)
+
+Status: all 12 local CI gates passed with incremental compilation disabled; user review pending. Optional versioned
+world-map semantics use node extras and registered engine commands. Categories
+use stable IDs, properties are text, and shared geographic UUIDs do not synchronize
+geometry. Native content guards prevent silent loss in the examined older
+WorldMap reader. Ordinary documents retain their defaults. See
+[implementation contract and evidence](aetherys-semantics-design.md#7-prüfung-und-grenzen).
+This application extension changes no Illustrator area score, missing-item list
+or hour estimate; no existing parity gap or milestone is closed.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-07 | minor | AETH-01 node metadata, native content guard and engine command integration; 13,065 workspace tests and all 12 CI gates passed (incremental compilation disabled); user review pending. |

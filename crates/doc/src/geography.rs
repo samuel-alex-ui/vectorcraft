@@ -1,0 +1,275 @@
+//! Optional world-map semantics; never a second geometry store.
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
+use std::marker::PhantomData;
+
+use serde::de::{DeserializeSeed, Error, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+
+pub const SCHEMA_VERSION: u32 = 1;
+pub const BUILTIN_CATEGORIES: &[&str] = &[
+    "core:land",
+    "core:ocean",
+    "core:lake",
+    "core:river",
+    "core:coastline",
+    "core:biome",
+    "core:border",
+    "core:road",
+    "core:settlement",
+    "core:parcel",
+    "core:building",
+];
+
+/// Accepted UUID text: lower-case hex-and-dash, excluding nil. No UUIDs are generated here.
+/// Text layout: https://www.rfc-editor.org/rfc/rfc9562.html#section-4
+pub fn valid_entity_id(s: &str) -> bool {
+    s.len() == 36
+        && s.bytes().enumerate().all(
+            |(i, b)| {
+                if matches!(i, 8 | 13 | 18 | 23) { b == b'-' } else { b.is_ascii_digit() || (b'a'..=b'f').contains(&b) }
+            },
+        )
+        && s.bytes().any(|b| b != b'0' && b != b'-')
+}
+
+fn user_category(s: &str) -> bool {
+    s.strip_prefix("user:").is_some_and(valid_entity_id)
+}
+
+fn text(s: &str, max: usize) -> bool {
+    !s.trim().is_empty() && s.len() <= max && !s.chars().any(char::is_control)
+}
+
+struct Text<const N: usize>;
+impl<'de, const N: usize> DeserializeSeed<'de> for Text<N> {
+    type Value = String;
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<String, D::Error> {
+        struct Read<const N: usize>;
+        impl<const N: usize> Visitor<'_> for Read<N> {
+            type Value = String;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "text of at most {N} bytes")
+            }
+            fn visit_str<E: Error>(self, s: &str) -> Result<String, E> {
+                if s.len() > N {
+                    return Err(E::custom("geographic text exceeds byte limit"));
+                }
+                Ok(s.to_owned())
+            }
+        }
+        d.deserialize_str(Read::<N>)
+    }
+}
+
+fn strings<'de, D: Deserializer<'de>, const N: usize, const L: usize>(d: D) -> Result<Vec<String>, D::Error> {
+    struct Read<const N: usize, const L: usize>;
+    impl<'de, const N: usize, const L: usize> Visitor<'de> for Read<N, L> {
+        type Value = Vec<String>;
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "at most {N} strings")
+        }
+        fn visit_seq<A: SeqAccess<'de>>(self, mut a: A) -> Result<Self::Value, A::Error> {
+            let mut values = Vec::new();
+            let mut seen = BTreeSet::new();
+            while let Some(s) = a.next_element_seed(Text::<L>)? {
+                if values.len() >= N || !seen.insert(s.clone()) {
+                    return Err(A::Error::custom("too many or duplicate geographic entries"));
+                }
+                values.push(s);
+            }
+            Ok(values)
+        }
+    }
+    d.deserialize_seq(Read::<N, L>)
+}
+
+fn entries<'de, D: Deserializer<'de>, const N: usize, const K: usize, const V: usize>(d: D) -> Result<BTreeMap<String, String>, D::Error> {
+    struct Read<const N: usize, const K: usize, const V: usize>(PhantomData<()>);
+    impl<'de, const N: usize, const K: usize, const V: usize> Visitor<'de> for Read<N, K, V> {
+        type Value = BTreeMap<String, String>;
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "at most {N} text properties")
+        }
+        fn visit_map<A: MapAccess<'de>>(self, mut a: A) -> Result<Self::Value, A::Error> {
+            let mut values = BTreeMap::new();
+            while let Some(k) = a.next_key_seed(Text::<K>)? {
+                if values.len() >= N || values.contains_key(&k) {
+                    return Err(A::Error::custom("too many or duplicate geographic properties"));
+                }
+                let value = a.next_value_seed(Text::<V>)?;
+                values.insert(k, value);
+            }
+            Ok(values)
+        }
+    }
+    d.deserialize_map(Read::<N, K, V>(PhantomData))
+}
+
+fn entity<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    // The field itself is optional; explicit null is accepted as removal.
+    struct Read;
+    impl<'de> Visitor<'de> for Read {
+        type Value = Option<String>;
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("a UUID or null")
+        }
+        fn visit_none<E: Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+        fn visit_unit<E: Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+        fn visit_some<D: Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
+            Text::<36>.deserialize(d).map(Some)
+        }
+    }
+    d.deserialize_option(Read)
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GeographicMetadata {
+    #[serde(default, skip_serializing_if = "Vec::is_empty", deserialize_with = "strings::<_, 32, 64>")]
+    pub categories: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty", deserialize_with = "strings::<_, 64, 256>")]
+    pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "entries::<_, 64, 128, 4096>")]
+    pub properties: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "entity")]
+    pub geographic_entity_id: Option<String>,
+}
+
+impl GeographicMetadata {
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.categories.len() > 32 || self.tags.len() > 64 || self.properties.len() > 64 {
+            return Err("geographic collection limit exceeded");
+        }
+        let unique = |v: &[String]| v.iter().collect::<BTreeSet<_>>().len() == v.len();
+        if !unique(&self.categories)
+            || !unique(&self.tags)
+            || self.categories.iter().any(|s| !BUILTIN_CATEGORIES.contains(&s.as_str()) && !user_category(s))
+            || self.tags.iter().any(|s| !text(s, 256))
+            || self.properties.iter().any(|(k, v)| !text(k, 128) || v.len() > 4096)
+            || self.geographic_entity_id.as_deref().is_some_and(|s| !valid_entity_id(s))
+        {
+            return Err("invalid geographic category, tag, property or UUID");
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MapSemantics {
+    pub schema_version: u32,
+    /// Own category UUID -> display label. Built-in categories are not duplicated here.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "entries::<_, 1024, 64, 256>")]
+    pub categories: BTreeMap<String, String>,
+}
+impl Default for MapSemantics {
+    fn default() -> Self {
+        Self { schema_version: SCHEMA_VERSION, categories: BTreeMap::new() }
+    }
+}
+impl MapSemantics {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.schema_version != SCHEMA_VERSION
+            || self.categories.len() > 1024
+            || self.categories.iter().any(|(id, label)| !user_category(id) || !text(label, 256))
+        {
+            return Err("unsupported or invalid map semantics schema/categories");
+        }
+        Ok(())
+    }
+}
+
+impl crate::Document {
+    /// Validate the content-version guard and every stored geographic record, including library art.
+    pub fn validate_geography(&self) -> Result<(), &'static str> {
+        match (&self.map_semantics, self.world_map.and_then(|m| m.content_schema())) {
+            (None, None) => {}
+            (Some(s), Some(SCHEMA_VERSION)) => s.validate()?,
+            _ => return Err("map semantics require a matching world-map content schema"),
+        }
+        let mut result = Ok(());
+        let mut check = |n: &crate::Node| {
+            if let Some(g) = &n.extras().geography
+                && !g.is_empty()
+            {
+                result = result.and_then(|_| {
+                    self.map_semantics.as_ref().ok_or("geography requires a world-map semantics schema")?;
+                    g.validate()?;
+                    Ok(())
+                });
+            }
+        };
+        for layer in &self.layers {
+            crate::swatches::walk_with_masks(layer, &mut check);
+        }
+        for symbol in &self.symbols {
+            crate::swatches::walk_with_masks(&symbol.art, &mut check);
+        }
+        for pattern in &self.patterns {
+            for art in &pattern.art {
+                crate::swatches::walk_with_masks(art, &mut check);
+            }
+        }
+        for design in &self.graph_designs {
+            crate::swatches::walk_with_masks(&design.art, &mut check);
+        }
+        result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Document, Node, OpacityMask, WorldMap};
+    const ENTITY: &str = "7a7eb4cc-b286-44dd-9949-4542254e5ee0";
+    #[test]
+    fn copying_masks_detaches_identity_and_ordinary_targets_remain_ordinary() {
+        let mut d = Document::new(1000.0, 500.0);
+        d.world_map = Some(WorldMap::standard());
+        let mut mask = Node::group(d.alloc_id(), vec![]);
+        mask.extras_mut().geography = Some(Box::new(GeographicMetadata {
+            categories: vec!["core:land".into()],
+            geographic_entity_id: Some(ENTITY.into()),
+            ..Default::default()
+        }));
+        let mut original = Node::group(d.alloc_id(), vec![]);
+        original.extras_mut().mask = Some(Box::new(OpacityMask::new(mask, true)));
+        let copy = d.reid(&original);
+        let copied_mask = &copy.extras().mask.as_ref().unwrap().art;
+        let metadata = copied_mask.extras().geography.as_ref().unwrap();
+        assert_eq!(metadata.categories, vec!["core:land"]);
+        assert!(metadata.geographic_entity_id.is_none());
+        assert_eq!(d.world_map.unwrap().content_schema(), Some(1));
+        let mut ordinary = Document::new(100.0, 100.0);
+        let copy = ordinary.reid(&original);
+        assert!(copy.extras().mask.as_ref().unwrap().art.extras().geography.is_none());
+        assert!(ordinary.world_map.is_none());
+        assert!(ordinary.map_semantics.is_none());
+        assert_eq!(original.extras().mask.as_ref().unwrap().art.extras().geography.as_ref().unwrap().geographic_entity_id.as_deref(), Some(ENTITY));
+    }
+
+    #[test]
+    fn uuid_and_programmatic_validation_reject_invalid_values() {
+        for id in ["", "00000000-0000-0000-0000-000000000000", "7A7EB4CC-b286-44dd-9949-4542254e5ee0", "7a7eb4cc-b286-44dd-9949-4542254e5ee!"] {
+            assert!(!valid_entity_id(id));
+        }
+        assert!(valid_entity_id(ENTITY));
+        let g = GeographicMetadata { categories: vec!["core:bogus".into()], ..Default::default() };
+        assert!(g.validate().is_err());
+        let mut d = Document::new(1000.0, 500.0);
+        d.layers[0] = std::sync::Arc::new({
+            let mut n = (*d.layers[0]).clone();
+            n.extras_mut().geography = Some(Box::new(g));
+            n
+        });
+        assert!(d.validate_geography().is_err());
+    }
+}

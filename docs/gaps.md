@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-31 · **Change:** minor (G5: dynamic symbols, #4938; estimate 15–26 → 14–24 h) · **Target:** Adobe Illustrator 2026 (30.x; G12: Units › East Asian Type acts, with Q and Ha units; estimate unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (G15: AETH-01 50k dev-profile diagnostics; estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; G12: Units › East Asian Type acts, with Q and Ha units; estimate unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -606,8 +606,10 @@ from G14 and the budget run of G15: **~170–270 h** one agent, ~50–80 h wall 
 
 ## G15 Performance budgets and a GPU renderer
 
+- **AETH-01 diagnostics (2026-11-07):** two 50k-path runs each on pinned main and the metadata PR, optimized dev builds, 8-core macOS, no load warnings. Save/Open and all non-render budgets pass in all four runs. Main misses one/three render budgets; the PR misses three in both runs, with high Pan times and substantial variability. Renderer code is unchanged; this is not a release performance clearance. [Measured ranges](aetherys-semantics-design.md#7-prüfung-und-grenzen). Estimates unchanged; G15 remains open.
+
 - **Improved (#1257):** Craquelure, Mosaic Tiles and Stained Glass reuse squared distances during nearest-cell searches, with the original distance ordering retained near rounding/tie boundaries. A brute-force boundary regression and full-viewport pixel comparisons agree with the old result. `texture_drag_perf` reproduces a moved CMYK rounded rectangle at 190.07% and DPI 1.5; timings from a busy development machine are supporting evidence, with idle Windows drag QA still pending.
-- **Missing:** an idle-machine run of `vectorcraft-cli perf` at 50k paths (2026-10-11 at 25k paths, every budget
+- **Missing:** a reproducible 50k-path run of `vectorcraft-cli perf` that meets the budgets (the AETH-01 dev-profile diagnostics below still miss render budgets; 2026-10-11 at 25k paths, every budget
   met, 400% zoom 12.3 ms against 16 ms, measured; runs of 0.10.0 on Linux with 4 logical CPUs, reported in #1172
   on 2026-10-13, missed all three render budgets at 20k paths), a spatial index for zoomed-in frames, dirty-region
   rendering, the GPU backend spike (M5). Large-selection edits, cached live effects and Pathfinder Trim, Merge,
@@ -919,3 +921,7 @@ trap, and the defaults (0.25 pt, 100%, 40%) are VectorCraft's own, the pages giv
 2026-10-28 behavior correction: Flare ray rotation follows vertical travel at one degree per document point, independent of pointer event count. Shift freezes the current orientation; Space also freezes rotation on the first update. This is the chosen application interaction rate. Scores and estimates unchanged.
 ## EPS Save evidence (2026-10-26)
 Ordinary Save and Save As keep EPS as EPS, with the chosen page frame, transparent margins and the complete editable VectorCraft document. Existing import-loss confirmation and transparency warnings remain; the Save TIFF preview is capped at 1024 pixels, while Export retains 2048. See [file-format-parity.md](file-format-parity.md#eps-save-and-source-protection) for limits and regression evidence. This narrows G9 save-back workflow coverage; native Illustrator editing-data fidelity, parity scores and hour estimates are unchanged.
+
+| Date | Change | AETH-01 performance evidence |
+|---|---|---|
+| 2026-11-07 | minor | Record paired 50k dev diagnostics: non-render budgets pass, render misses remain on main and PR; estimates unchanged. |

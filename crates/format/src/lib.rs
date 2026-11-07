@@ -293,6 +293,7 @@ pub fn save_to(doc: &Document, o: &SaveOptions, w: impl Write) -> Result<(), For
     o.check()?;
     let pretty = o.pretty && !o.compress;
     let Body { d, v1, blobs, linked } = body(doc, o)?;
+    d.validate_geography().map_err(|e| FormatError::NotVectorcraft(e.into()))?;
     let entries = Entries { blobs: &blobs, linked: &linked, include_linked: o.include_linked };
     let mut out_blobs = Tail::new(o.version);
     // Images are only referenced by image objects' `key` (wherever the objects are: layers,
@@ -511,6 +512,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
         None => base64_decode(&img.data).map(Arc::new),
     };
     let mut doc = f.document;
+    doc.validate_geography().map_err(|e| FormatError::NotVectorcraft(e.into()))?;
     for (k, img) in f.images {
         let bytes = bytes_of(&img).ok_or_else(|| FormatError::BadImage(k.clone()))?;
         let mut blob = ImageBlob { mime: img.mime, bytes, proxy: None };
@@ -571,6 +573,8 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
             }
         })
         .collect::<Result<_, FormatError>>()?;
+    // Editing-mode restoration and migrations must not introduce unchecked semantic art.
+    doc.validate_geography().map_err(|e| FormatError::NotVectorcraft(e.into()))?;
     Ok(NativeFile { doc, depth_notes, info, profiles })
 }
 
