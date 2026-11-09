@@ -1,6 +1,6 @@
 # AETH-02: Detailstufen-Verwaltung
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Verhalten bestätigt; Implementierung und alle zwölf CI-Gates erfolgreich, Review/Nutzerabnahme offen.
 **Reihenfolge:** 02 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +20,21 @@ Implementiere auf einer geprüften Basis UI/Engine-Funktionen für beliebige Det
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
+
+## Bestätigter Entwurf und Nachweis
+
+[Detailstufenvertrag, Kommandobeispiele und Prüfbericht](../aetherys-detail-levels.md). Oberste markierte Layer, fünf Standardgruppen, gezielte Erstellung ohne automatische Migration; Duplizieren löst Entity-Verknüpfungen, Löschen samt Inhalt mit Undo. Nutzer bestätigt am 2026-11-08.
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-08 | AETH-02 beauftragt und Verhalten bestätigt; Implementierung vorbereitet. |
+| 2026-11-09 | CI, macOS-Bedienprüfung und Performancevergleich dokumentiert. PR zur Review vorbereitet. |

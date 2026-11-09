@@ -739,6 +739,7 @@ mod tests {
             visible: Rect::new(0.0, 0.0, 100.0, 100.0),
             px: 1.0,
             opts: &opts,
+            inherited_fade: None,
             ink: Ink::Display,
             plates: None,
         };

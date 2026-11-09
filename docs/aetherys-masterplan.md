@@ -1,7 +1,7 @@
 # Aetherys / VectorCraft – Masterplan und Codex-Roadmap
 
-**Stand:** 2026-11-07  
-**Status:** Produktentscheidungen und geplante Arbeit; KEINE Bestätigung, dass die neuen Funktionen bereits implementiert sind.  
+**Stand:** 2026-11-08
+**Status:** Produktziele mit verifiziertem Zwischenstand: AETH-01 auf eigenem Branch implementiert und lokal geprüft; weitere Funktionen geplant, Review offen.
 **Basis:** [Bisheriger Projektleitfaden](aetherys-project-guide.md) · [Technischer Weltkartenstatus](aetherys-world-map.md)
 
 > **Ziel:** Eine einzige, geografisch konsistente Fantasywelt vom ganzen Planeten über Kontinente und Städte bis zu Grundstücken und Häusern in einem nativen 2D-Vektoreditor bearbeiten. Ein separater, nur lesender 3D-Globus dient später der Vorschau. Bestehende VectorCraft-Werkzeuge und Daten bleiben nutzbar.
@@ -48,18 +48,30 @@ Relevante PRs: [#5](https://github.com/samuel-alex-ui/vectorcraft/pull/5), [#6](
 
 **Kartendatei:** Häufig `maps/Aetherys World Map2.vectorcraft` auf den einschlägigen Feature-Branches. Nie durch generierte Rasterbilder ersetzen. Aktuelle Basisdatei und Branch vor einer Migration ausdrücklich ermitteln. Die bereits existierende Layerhierarchie kann davon abweichen; Migration erst nach Backup und Test.
 
-## D. Noch offene Produktentscheidungen (nicht als entschieden implementieren)
+### AETH-01 – Implementierung und Prüfung (2026-11-07)
 
-1. **Identität über Detailstufen:** Wie verknüpfen wir mehrere Detailzeichnungen derselben Küste/Stadt? Empfehlung: optionale stabile geografische Objekt-ID, keine automatische Rückpropagation.
-2. **Objektsemantik:** Welche Kategorien/Eigenschaften braucht ein geografisches Objekt zuerst? Welche Filter gelten für Gruppen vs. Objekttypen? Empfehlung: erweiterbare Typen und benutzerdefinierte Tags statt Layernamen-Heuristik.
+Das [bestätigte Schema und der Prüfbericht](aetherys-semantics-design.md) beschreiben
+stabile Kategorie-IDs, freie Tags, zunächst Text-Eigenschaften und optionale
+geografische Entity-UUIDs. Der Nutzer hat das Schema vor Implementierung bestätigt.
+Metadatenmodell, drei Engine-Kommandos und Inhaltsversionsschutz sind implementiert;
+alle zwölf lokalen CI-Gates sind erfolgreich. Save/Open-Performancebudgets werden
+eingehalten; Renderbudgets sind bereits in der Basis und im PR teils überschritten.
+Normale Kopien lösen Entity-Verknüpfungen, keine reale Karte wurde verändert.
+Review und macOS-Nutzerprüfung bleiben offen. AETH-00 liegt separat in
+[PR #10](https://github.com/samuel-alex-ui/vectorcraft/pull/10).
+
+## D. Bestätigte Grundlagen und noch offene Produktentscheidungen
+
+1. **Identität über Detailstufen:** AETH-01-Grundlage bestätigt und implementiert: optionale gemeinsame Entity-UUID, keine automatische Rückpropagation. Verwaltung zusammengehöriger Detailrepräsentationen und Geometrieoperationen bleiben AETH-07.
+2. **Objektsemantik:** AETH-01-Schema bestätigt und implementiert: mehrere stabile Kategorie-IDs, freie Tags und zunächst Text-Eigenschaften. Gruppen-/Objektfilter und spätere typisierte Eigenschaften bleiben gesondert zu spezifizieren.
 3. **Modus-Stile:** Wann und wie Farben/Linienstärken pro Modus überschrieben werden; erst nach Sichtbarkeits-MVP.
 4. **Verborgene Objekte bearbeiten:** Expliziter Editier-/Alle-anzeigen-Modus ohne unbemerkte Modusänderung.
 5. **Antimeridian und Pole:** Linien, gefüllte Flächen, Löcher und Editieren an der Weltnaht technisch spezifizieren und testen.
 6. **Planetenmaßstab:** UI für Radius/Entfernungen; Maßeinheiten und geodätische Berechnungen.
 7. **LOD-Compositing:** Regel für gefüllte überblendende Landmassen und unveränderte Gesamtwirkung beim Wechsel.
-8. **Persistenz/Kompatibilität:** Schemaentwicklung, alte Dateien, Migration, Undo/Redo und Exportsemantik.
+8. **Persistenz/Kompatibilität:** AETH-01 implementiert Schema 1 mit Inhaltsversionsschutz, nativen Roundtrips und Undo/Redo. Migration realer Karten, Exportsemantik und weitere Schemaentwicklung bleiben offen.
 
-Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besprochen und bestätigt sind.
+Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übrigen Empfehlungen sind erst nach Besprechung und Bestätigung verbindliche Produktentscheidungen.
 
 ## E. Inkrementelle Codex-Arbeitsfolge
 
@@ -68,9 +80,9 @@ Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besproc
 | Reihenfolge | Paket | Ergebnis / Abnahme |
 |---|---|---|
 | 00 | Branch-/Dateistand konsolidieren | Tatsächlichen Basisbranch, abhängige PRs und aktuelle Karten-Datei dokumentieren; keine Datenverluste |
-| 01 | Datenmodell für Kartentypen und Identität | Kleine, versionierbare Semantik mit Tests; normaler Editor unverändert |
-| 02 | Beliebig viele Detailstufen | Anlegen/Umbenennen/Löschen, Standard-Untergruppen, Persistenz und Migrationstests |
-| 03 | Ererbte Zoom-Fade-Regeln | Zoom-Start/Ende von Eltern mit optionalen Ausnahmen; vorhandenes Fade wiederverwenden |
+| 01 | Datenmodell für Kartentypen und Identität | Schema bestätigt, Modell/Kommandos und Tests implementiert; lokale CI erfolgreich, Review/Nutzerprüfung offen |
+| 02 | Beliebig viele Detailstufen ([Vertrag/Prüfbericht](aetherys-detail-levels.md), Nutzerverhalten bestätigt; Implementierung im Branch, Review offen) | Anlegen/Umbenennen/Löschen, Standard-Untergruppen, Persistenz und Migrationstests |
+| 03 | [Ererbte Zoom-Fade-Regeln](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen) | Zoom-Start/Ende von Eltern mit optionalen Ausnahmen; vorhandenes Fade wiederverwenden |
 | 04 | Kartenmodus-MVP | Vordefinierte und benutzerdefinierte Modi; Speichern, Auswahl und UI |
 | 05 | Sichtbarkeits-Filter | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
 | 06 | Editorzugriff & Übergangstests | Unsichtbare Objekte erreichbar; Undo, Export, Fade-Überlappungen |
@@ -101,3 +113,15 @@ Die Empfehlungen sind keine verbindlichen Produktentscheidungen, bis sie besproc
 5. Nach jedem Schritt dieses Dokument um tatsächlichen Status/Entscheidungen ergänzen.
 
 *Historischer Leitfaden und bereits existierende Detaildokumentationen bleiben erhalten. Dieses Dokument ist die fortlaufende Roadmap, keine Behauptung, dass alle Ziele schon fertig sind.*
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-07 | AETH-01-Design und Kompatibilitätsrisiko verlinkt; Schema vom Nutzer bestätigt, Implementierung zur Prüfung; Review/Nutzerabnahme offen. |
+
+## AETH-02 – bestätigter Detailstufenvertrag (2026-11-08)
+
+Markierte oberste Layer, fünf Standardgruppen, gezieltes Erstellen ohne Migration bestehender Karten. Kopien lösen Entity-Verknüpfungen; Löschen samt Inhalt ist rückgängig. [Modell, Kommandos, Bedienung und Prüfbericht](aetherys-detail-levels.md). Zoomgrenzen und Fade-Vererbung folgen in AETH-03.
+
+AETH-03 integriert PR #5 auf dem AETH-02-Stand. Die nächste eigene Zoomregel ersetzt die geerbte Regel. Gleichmäßig blendende Teilbäume werden gemeinsam komponiert.

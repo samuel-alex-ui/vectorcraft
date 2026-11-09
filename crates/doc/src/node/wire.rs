@@ -53,6 +53,9 @@ impl Serialize for Node {
             is_default(&e.compound_shape),
             is_default(&e.shape_mode),
             e.symbol_overrides.is_empty(),
+            e.geography.as_deref().is_none_or(crate::GeographicMetadata::is_empty),
+            !e.detail_level,
+            e.zoom_fade.is_none(),
         ];
         let mut st = s.serialize_struct("Node", skips.iter().filter(|s| !**s).count())?;
         let mut skip = skips.into_iter();
@@ -94,6 +97,9 @@ impl Serialize for Node {
         field!("compound_shape", &e.compound_shape);
         field!("shape_mode", &e.shape_mode);
         field!("symbol_overrides", &e.symbol_overrides);
+        field!("geography", &e.geography);
+        field!("detail_level", &e.detail_level);
+        field!("zoom_fade", &e.zoom_fade);
         st.end()
     }
 }
@@ -232,11 +238,18 @@ pub(super) struct NodeWire {
     shape_mode: crate::ShapeMode,
     #[serde(default, deserialize_with = "counted_list")]
     symbol_overrides: Vec<crate::SymbolOverride>,
+    #[serde(default)]
+    geography: Option<Box<crate::GeographicMetadata>>,
+    #[serde(default)]
+    detail_level: bool,
+    #[serde(default)]
+    zoom_fade: Option<crate::ZoomFade>,
 }
 
 impl From<NodeWire> for Node {
     fn from(w: NodeWire) -> Self {
         let extras = NodeExtras {
+            detail_level: w.detail_level,
             mask: w.mask,
             trace: w.trace,
             wrap: w.wrap,
@@ -258,6 +271,8 @@ impl From<NodeWire> for Node {
             compound_shape: w.compound_shape,
             shape_mode: w.shape_mode,
             symbol_overrides: w.symbol_overrides,
+            geography: w.geography.filter(|g| !g.is_empty()),
+            zoom_fade: w.zoom_fade,
         };
         Node {
             id: w.id,

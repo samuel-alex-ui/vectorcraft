@@ -150,6 +150,30 @@ impl Renderer {
         if self.skipped(f, a) {
             return;
         }
+        if let Some(zoom) = f.opts.world_map_zoom.filter(|_| f.doc.world_map.is_some())
+            && let Some(rule) = a.extras().zoom_fade.or(f.inherited_fade)
+        {
+            let opacity = rule.opacity(zoom);
+            if opacity < 1.0 {
+                if a.has_zoom_fade_override() {
+                    return self.draw_visible_arc(ctx, &Frame { inherited_fade: Some(rule), ..*f }, a);
+                }
+                if opacity > 0.0 {
+                    let bounds = self.bounds_of(f.symbols, a);
+                    let blends = a.blend != vectorcraft_color::BlendMode::Normal || (!a.isolate && self.blends_through(a));
+                    let content = &Frame { inherited_fade: None, ..*f };
+                    self.group(ctx, content, Composite { opacity, bounds, blends, ..Default::default() }, &mut |r, c, fr| {
+                        r.draw_visible_arc(c, fr, a);
+                    });
+                }
+                return;
+            }
+            return self.draw_visible_arc(ctx, &Frame { inherited_fade: None, ..*f }, a);
+        }
+        self.draw_visible_arc(ctx, f, a);
+    }
+
+    fn draw_visible_arc(&mut self, ctx: &mut RenderContext, f: &Frame, a: &Arc<Node>) {
         // An image masked by one white shape painted straight into the shape, as an image in a
         // clip group is (envelopes with Preserve Shape Using Transparency cut distorted images into
         // many such pieces).
@@ -214,7 +238,7 @@ impl Renderer {
         let image_left_out = self.image_left_out.replace(false);
         let failures = crate::paint::decode_failures();
         let pattern_images_left_out = crate::pattern::images_left_out();
-        self.draw_kept_node(&mut mctx, &Frame { mt: false, ink: Ink::Display, ..*f }, &m.art);
+        self.draw_kept_node(&mut mctx, &Frame { mt: false, ink: Ink::Display, inherited_fade: None, ..*f }, &m.art);
         let incomplete = self.image_left_out.unwrap_or(false)
             || crate::pattern::images_left_out() > pattern_images_left_out
             || (!f.opts.mark_undecoded_images && crate::paint::decode_failures() > failures);
@@ -386,6 +410,9 @@ impl Renderer {
         }
         let outline = f.opts.outline;
         let opacity = self.opacity_of(n);
+        if opacity <= 0.0 {
+            return;
+        }
         // Whether this container's children knock each other out.
         let knockout = !outline && n.knocks_out(self.knockout);
         let enclosing = std::mem::replace(&mut self.knockout, knockout);

@@ -1,6 +1,6 @@
 # File format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-03 · **Change:** minor (Aetherys Phase 1.2 geographic document metadata; parity scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-07 · **Change:** minor (AETH-01 world-map semantics; parity scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 Every format Illustrator opens, places, saves or exports, against VectorCraft's format table (`FORMATS`,
 `OPEN_EXTS`, `PLACE_EXTS` in `crates/engine/src/cmd/fileio/formats.rs`). Illustrator's list comes from its public
@@ -290,3 +290,34 @@ architecture: [Aetherys world maps](aetherys-world-map.md#phase-12-persistent-ge
 | Date | Change | Summary |
 |---|---|---|
 | 2026-11-03 | minor | Aetherys 1.2 geographic document persistence; parity scores/hours unchanged. |
+
+## Aetherys AETH-01 (2026-11-07)
+
+Status: all 12 local CI gates passed with incremental compilation disabled; user review pending. Optional versioned
+world-map semantics use node extras and registered engine commands. Categories
+use stable IDs, properties are text, and shared geographic UUIDs do not synchronize
+geometry. Native content guards prevent silent loss in the examined older
+WorldMap reader. Ordinary documents retain their defaults. See
+[implementation contract and evidence](aetherys-semantics-design.md#7-prüfung-und-grenzen).
+This application extension changes no Illustrator area score, missing-item list
+or hour estimate; no existing parity gap or milestone is closed.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-07 | minor | AETH-01 node metadata, native content guard and engine command integration; 13,065 workspace tests and all 12 CI gates passed (incremental compilation disabled); user review pending. |
+
+## Aetherys AETH-02 (2026-11-08)
+
+**Status:** Flexible, ausdrücklich markierte Detailstufen auf Feature-Branch; Review und macOS-Nutzerabnahme offen. [Vertrag, Engine-/Panel-Verhalten und Prüfbericht](aetherys-detail-levels.md). Alte Karten bleiben unverändert, keine automatische Migration; Fade/Modi folgen später. Paritätsscores und Stunden unverändert (Anwendungserweiterung).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-08 | minor: AETH-02, explizite Detailstufen mit Standardgruppen, History und nativem Versionsschutz. |
+
+## Aetherys AETH-03 (2026-11-09)
+
+**Status:** Feature-Branch zur Review. Die native Datei speichert eigene Zoomregeln an Ebenen, Gruppen und Objekten. Fehlende Regeln werden zur Laufzeit geerbt. Paritätswerte und Aufwandsschätzungen bleiben unverändert. [Vertrag und Demonstration](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | AETH-03 übernimmt PR #5 und ergänzt Zoom-Fade-Vererbung. |

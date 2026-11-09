@@ -32,6 +32,7 @@ pub enum MapError {
     InvalidLatitude,
     OutsideCanvas,
     InvalidRadius,
+    UnsupportedContentSchema,
 }
 
 impl std::fmt::Display for MapError {
@@ -49,6 +50,7 @@ pub struct WorldMap {
     width: f64,
     height: f64,
     planet_radius_m: Option<f64>,
+    content_schema: Option<u32>,
 }
 
 impl WorldMap {
@@ -57,11 +59,11 @@ impl WorldMap {
         if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 || (width / 2.0 - height).abs() > height * 1e-9 {
             return Err(MapError::InvalidDimensions);
         }
-        Ok(Self { width, height, planet_radius_m: None })
+        Ok(Self { width, height, planet_radius_m: None, content_schema: None })
     }
 
     pub fn standard() -> Self {
-        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT, planet_radius_m: None }
+        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT, planet_radius_m: None, content_schema: None }
     }
 
     /// Optional spherical planet radius, in metres. No Earth-sized default is assumed.
@@ -74,6 +76,19 @@ impl WorldMap {
             return Err(MapError::InvalidRadius);
         }
         self.planet_radius_m = Some(radius);
+        Ok(self)
+    }
+
+    /// Required semantic content version. Older readers reject this field instead of losing data.
+    pub fn content_schema(&self) -> Option<u32> {
+        self.content_schema
+    }
+
+    pub fn with_content_schema(mut self, schema: Option<u32>) -> Result<Self, MapError> {
+        if schema.is_some_and(|v| v != 1) {
+            return Err(MapError::UnsupportedContentSchema);
+        }
+        self.content_schema = schema;
         Ok(self)
     }
 
@@ -171,13 +186,15 @@ struct MapData {
     height: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     planet_radius_m: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    content_schema: Option<u32>,
 }
 
 impl TryFrom<MapData> for WorldMap {
     type Error = MapError;
 
     fn try_from(data: MapData) -> Result<Self, Self::Error> {
-        let map = Self::new(data.width, data.height)?;
+        let map = Self::new(data.width, data.height)?.with_content_schema(data.content_schema)?;
         match data.planet_radius_m {
             Some(radius) => map.with_planet_radius_m(radius),
             None => Ok(map),
@@ -187,7 +204,13 @@ impl TryFrom<MapData> for WorldMap {
 
 impl From<WorldMap> for MapData {
     fn from(map: WorldMap) -> Self {
-        Self { projection: Projection::Equirectangular, width: map.width, height: map.height, planet_radius_m: map.planet_radius_m }
+        Self {
+            projection: Projection::Equirectangular,
+            width: map.width,
+            height: map.height,
+            planet_radius_m: map.planet_radius_m,
+            content_schema: map.content_schema,
+        }
     }
 }
 
@@ -214,5 +237,22 @@ mod metadata_tests {
         ] {
             assert!(serde_json::from_value::<WorldMap>(bad).is_err());
         }
+    }
+}
+
+#[cfg(test)]
+mod content_schema_tests {
+    use super::*;
+    #[test]
+    fn content_version_is_optional_validated_and_preserves_projection() {
+        let old = WorldMap::standard();
+        assert!(serde_json::to_value(old).unwrap().get("content_schema").is_none());
+        let new = old.with_content_schema(Some(1)).unwrap();
+        let back: WorldMap = serde_json::from_value(serde_json::to_value(new).unwrap()).unwrap();
+        assert_eq!(new, back);
+        let p = GeographicPoint { longitude_deg: 20.0, latitude_deg: -30.0 };
+        assert_eq!(old.project(p), new.project(p));
+        assert_eq!(old.with_content_schema(Some(2)), Err(MapError::UnsupportedContentSchema));
+        assert_eq!(new.with_content_schema(None).unwrap(), old);
     }
 }

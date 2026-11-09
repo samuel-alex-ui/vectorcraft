@@ -15,6 +15,7 @@ mod compoundshape;
 pub(crate) mod create;
 mod css;
 mod cut;
+mod detail_levels;
 pub(crate) mod dimension;
 pub(crate) mod distortcmds;
 mod docinfo;
@@ -31,6 +32,7 @@ pub mod flatten;
 pub mod fontfiles;
 mod fonts;
 pub(crate) mod freeform;
+mod geography;
 pub mod globaledit;
 pub(crate) mod gradient;
 pub mod gradpresets;
@@ -335,6 +337,8 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(shortcutset::specs());
         v.extend(importmatches::specs());
         v.extend(addons::specs());
+        v.extend(geography::specs());
+        v.extend(detail_levels::specs());
         v
     })
 }

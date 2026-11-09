@@ -1,13 +1,13 @@
 # Aetherys – Codex-Aufträge
 
-**Stand:** 2026-11-07 · **Status:** Alles geplant, nichts aus dieser Liste allein durch die Dokumentation umgesetzt.
+**Stand:** 2026-11-08 · **Status:** AETH-00 zur Prüfung in PR #10; AETH-01 nach Schemabestätigung implementiert und lokal geprüft, Review offen; weitere Phasen geplant. Keine neuen App-Funktionen allein durch diese Dokumentation.
 
 [Masterplan](../aetherys-masterplan.md) · [Älterer Projektleitfaden](../aetherys-project-guide.md)
 
 ## Reihenfolge
 
-- [ ] [AETH-00 – Bestandsaufnahme: Branches und Kartendatei](AETH-00.md)
-- [ ] [AETH-01 – Geo-Objekttypen und Identität](AETH-01.md)
+- [ ] [AETH-00 – Bestandsaufnahme: Branches und Kartendatei](AETH-00.md) – [PR #10](https://github.com/samuel-alex-ui/vectorcraft/pull/10), Review offen
+- [ ] [AETH-01 – Geo-Objekttypen und Identität](AETH-01.md) – [Entwurf](../aetherys-semantics-design.md), Schema bestätigt, CI erfolgreich; Render-Performancebefunde und Review offen
 - [ ] [AETH-02 – Flexible Detailstufen](AETH-02.md)
 - [ ] [AETH-03 – Zoom-Fade-Vererbung](AETH-03.md)
 - [ ] [AETH-04 – Kartenmodus-Oberfläche](AETH-04.md)
@@ -19,6 +19,8 @@
 - [ ] [AETH-10 – 3D-Globusvorschau](AETH-10.md)
 - [ ] [AETH-11 – Spätere Erweiterungen](AETH-11.md)
 
+AETH-02: Verhalten bestätigt; [Implementierung und Prüfbericht](../aetherys-detail-levels.md) auf eigenem, auf AETH-01 gestapeltem Branch. Review/Nutzerabnahme offen.
+
 ## So arbeiten wir
 
 1. Nur **einen** Auftrag gleichzeitig an Codex übergeben. Einstieg: **AETH-00** als Bestandsaufnahme.
@@ -27,3 +29,9 @@
 4. Neue Produktbeschlüsse im Masterplan ergänzen, statt alte Dokumente zu ersetzen.
 
 **Hinweis:** GitHub Issues sind im Repository deaktiviert. Diese Markdown-Dateien sind deshalb der versionierte, direkt an Codex übergebbare Aufgaben-Backlog.
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-07 | AETH-01-Design verlinkt; AETH-00 bleibt separat in PR #10 zur Prüfung. |

@@ -1,6 +1,6 @@
 # AETH-03: Zoomvererbung
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Implementierung auf dem Branch für AETH-03. Review und macOS-Nutzerabnahme stehen aus.
 **Reihenfolge:** 03 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +20,16 @@ Integriere bzw. verwende PR #5 Zoom-Fade, nicht duplizieren. Eine Detailstufe se
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
+
+[Bedienung, Kompositionsregel und Demonstration](../aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | PR #5 integriert, Vererbung ergänzt und auf macOS sowie in der CI geprüft. |

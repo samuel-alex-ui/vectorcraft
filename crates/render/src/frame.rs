@@ -130,6 +130,8 @@ pub(crate) struct Frame<'a> {
     /// Size of one output pixel in document units.
     pub(crate) px: f64,
     pub(crate) opts: &'a RenderOptions,
+    /// Fade inherited in a subtree containing explicit exceptions.
+    pub(crate) inherited_fade: Option<vectorcraft_doc::ZoomFade>,
     /// What colours paint as: screen colours, or one ink plane of a CMYK document (see [`ink`]).
     pub(crate) ink: Ink,
     /// With Separations Preview, the tables placed images show the visible plates through.

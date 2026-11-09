@@ -578,6 +578,7 @@ fn frame_options(
 ) -> vectorcraft_render::RenderOptions {
     let opts = vectorcraft_render::RenderOptions { outline: app.outline_view(), background: None, artboards: false, ..Default::default() };
     vectorcraft_render::RenderOptions {
+        world_map_zoom: app.view().filter(|v| v.world_map).map(|v| v.zoom),
         proof: vectorcraft_render::proof::active_proof(),
         overprint_preview: vectorcraft_render::proof::overprint_preview_on(),
         trim: app.ui.view.trim_view,

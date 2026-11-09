@@ -69,6 +69,7 @@ pub mod text;
 pub mod trace;
 pub mod variables;
 pub mod xml_id;
+pub mod zoom_fade;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -148,13 +149,19 @@ pub use limits::{DocError, FORMAT_VERSION, MAX_COORD};
 pub use records::{ImageBlob, MaskEdit, NewArtIds, SavedSelection, SavedView, Symbol, SymbolEdit};
 pub use units::{ColorMode, Unit, parse_number};
 
+pub mod geography;
+pub use geography::{GeographicMetadata, MapSemantics};
 pub use vectorcraft_worldmap::WorldMap;
+pub use zoom_fade::ZoomFade;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Document {
     /// Geographic mapping; presence explicitly identifies a world-map document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub world_map: Option<vectorcraft_worldmap::WorldMap>,
+    /// Optional versioned geographic semantics, absent in ordinary and older documents.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_semantics: Option<MapSemantics>,
     pub version: u32,
     #[serde(default)]
     pub title: String,

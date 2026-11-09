@@ -8,6 +8,10 @@ use super::{Node, PathData};
 /// them stay small ([`Node::extras`]).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeExtras {
+    /// Explicit world-map detail-level layer; independent of its display name.
+    pub detail_level: bool,
+    /// World-map categories, text properties and optional geographic identity.
+    pub geography: Option<Box<crate::GeographicMetadata>>,
     /// Opacity mask (Transparency panel). Its art lives here, outside the layer tree.
     pub mask: Option<Box<OpacityMask>>,
     /// Image Trace object: `{preset, params, view?}` it was traced with (the Image Trace panel shows
@@ -66,10 +70,14 @@ pub struct NodeExtras {
     /// As an instance of a dynamic symbol, its own appearance changes to objects of the symbol's
     /// art (see [`crate::symbol_overrides`]); empty for none.
     pub symbol_overrides: Vec<crate::SymbolOverride>,
+    /// Optional per-layer geographic detail visibility. Inactive in ordinary documents.
+    pub zoom_fade: Option<crate::ZoomFade>,
 }
 
 /// No extras: what [`Node::extras`] gives for a node without any.
 pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
+    detail_level: false,
+    geography: None,
     mask: None,
     trace: None,
     wrap: None,
@@ -91,6 +99,7 @@ pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
     compound_shape: false,
     shape_mode: crate::ShapeMode::Add,
     symbol_overrides: Vec::new(),
+    zoom_fade: None,
 };
 
 /// A node's [`NodeExtras`], if it has any ([`Node::extras`]). Extras that are all unset equal
