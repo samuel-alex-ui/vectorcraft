@@ -622,3 +622,11 @@ estimate is reassessed; no full workspace CI is claimed for this phase.
 | Datum | Änderung |
 |---|---|
 | 2026-11-08 | minor: AETH-02, explizite Detailstufen mit Standardgruppen, History und nativem Versionsschutz. |
+
+## Aetherys AETH-03 (2026-11-09)
+
+**Status:** Feature-Branch zur Review. Die Ebenenoptionen von Weltkarten erlauben eigene Zoomregeln für Einzelzeilen. Untergeordnete Zeilen können von der nächsten Elternregel erben. Paritätswerte und Aufwandsschätzungen bleiben unverändert. [Vertrag und Demonstration](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | AETH-03 übernimmt PR #5 und ergänzt Zoom-Fade-Vererbung. |

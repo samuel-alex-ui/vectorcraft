@@ -29,7 +29,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Layer…",
             ["Window", "Layers"],
             Some("Cmd+L"),
-            "{name?, top?: bool, below?: bool, color?, template?, locked?, visible?, printable?, preview?, dimImages?} a layer directly above the current layer, at its level (a sublayer beside a current sublayer); `top`: above all layers (Ctrl/Cmd-click the button); `below`: directly below the current layer, at its level (Ctrl/Cmd+Alt-click the button), not with `top`. Options as layer.setProps; refused while an opacity mask is edited (the Layers panel lists only the mask) → {id}",
+            "{name?, top?: bool, below?: bool, color?, template?, locked?, visible?, printable?, preview?, dimImages?, zoomFade?: {fade_in?: [start,end], fade_out?: [start,end]}|null (world maps only)} a layer directly above the current layer, at its level (a sublayer beside a current sublayer); `top`: above all layers (Ctrl/Cmd-click the button); `below`: directly below the current layer, at its level (Ctrl/Cmd+Alt-click the button), not with `top`. Options as layer.setProps; refused while an opacity mask is edited (the Layers panel lists only the mask) → {id}",
             super::maskedit::outside_mask_editing,
             new_layer
         ),
@@ -83,7 +83,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Layer Options…",
             ["Window", "Layers"],
             None,
-            "{ids?|id? (default: the highlighted rows, else the current layer), name? (with prefs.identifyObjectsBy xmlId: a valid XML ID, stored as the object name), visible?, locked?, template?, printable?, preview?, dimImages?: 0..100|false, color?: index 0..26|\"#rrggbb\"|preset name} Layer Options; rows that are not layers take name, visible and locked. Template on also locks the layer and dims its images to 50% (unless given); off unlocks it and stops dimming. One undo step",
+            "{ids?|id? (default: the highlighted rows, else the current layer), name? (with prefs.identifyObjectsBy xmlId: a valid XML ID, stored as the object name), visible?, locked?, template?, printable?, preview?, dimImages?: 0..100|false, color?: index 0..26|\"#rrggbb\"|preset name, zoomFade?: {fade_in?: [start,end], fade_out?: [start,end]}|null (world maps only)} Layer Options; other rows take name, visible, locked and zoomFade. Null zoomFade restores inheritance, an empty rule bypasses it. Template on also locks the layer and dims its images to 50% (unless given); off unlocks it and stops dimming. One undo step",
             has_doc,
             set_props
         ),
@@ -319,7 +319,7 @@ pub(super) fn layer_color_param(v: &Value) -> std::result::Result<LayerColor, St
 /// Layer Options in `p` applied to layer or row `n` (validated first by [`check_options`]).
 /// `xml_id`: Preferences › Units › Identify Objects By › XML ID — `name` is an XML id and is
 /// stored as the object name ([`vectorcraft_doc::xml_id`]).
-fn apply_options(n: &mut Node, p: &Value, xml_id: bool) {
+fn apply_options(n: &mut Node, p: &Value, xml_id: bool, zoom_fade: Option<Option<vectorcraft_doc::ZoomFade>>) {
     if let Some(v) = str_param(p, "name") {
         if v.trim().is_empty() {
             // A layer keeps a name; an object goes back to its generated `<Kind>` one.
@@ -374,6 +374,22 @@ fn apply_options(n: &mut Node, p: &Value, xml_id: bool) {
     if let (Some(v), None) = (lock, locked) {
         n.locked = v;
     }
+    if let Some(fade) = zoom_fade {
+        n.extras_mut().zoom_fade = fade;
+    }
+}
+
+/// Only world-map documents accept an explicit zoom fade. Null restores inheritance.
+fn zoom_fade_param(s: &Session, p: &Value, cmd: &str) -> Result<Option<Option<vectorcraft_doc::ZoomFade>>> {
+    let Some(value) = p.get("zoomFade") else { return Ok(None) };
+    if s.doc()?.doc.world_map.is_none() {
+        return Err(bad(cmd, "zoomFade is only available in world-map documents"));
+    }
+    if value.is_null() {
+        return Ok(Some(None));
+    }
+    let fade: vectorcraft_doc::ZoomFade = serde_json::from_value(value.clone()).map_err(|e| bad(cmd, format!("invalid zoomFade: {e}")))?;
+    Ok(Some(Some(fade)))
 }
 
 /// Bad values in Layer Options params, as an error for `cmd`.
@@ -488,6 +504,7 @@ fn add_layer(s: &mut Session, p: &Value, cmd: &str, label: &str, place: impl FnO
     check_switches(p, &["top"], cmd)?;
     let xml_id = s.prefs.identify_objects_by == "xmlId";
     check_options(cmd, p, xml_id)?;
+    let zoom_fade = zoom_fade_param(s, p, cmd)?;
     let name = str_param(p, "name").filter(|n| !n.trim().is_empty()).map(str::to_string);
     let id = s.edit(label, |d, _| {
         let (parent, mut index) = place(d)?;
@@ -496,7 +513,7 @@ fn add_layer(s: &mut Session, p: &Value, cmd: &str, label: &str, place: impl FnO
             index = index.max(1);
         }
         let mut n = make_layer(d, name.as_deref());
-        apply_options(&mut n, p, xml_id);
+        apply_options(&mut n, p, xml_id, zoom_fade);
         Ok(d.insert(parent, index, n)?)
     })?;
     let st = s.doc_mut()?;
@@ -626,13 +643,14 @@ fn set_props(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "layer.setProps";
     let xml_id = s.prefs.identify_objects_by == "xmlId";
     check_options(C, p, xml_id)?;
+    let zoom_fade = zoom_fade_param(s, p, C)?;
     let ids = rows_param(s, p, C)?;
     if ids.is_empty() {
         return Err(bad(C, "no rows"));
     }
     s.edit("Layer Options", |d, sel| {
         for id in &ids {
-            apply_options(d.node_mut(*id).ok_or(EngineError::NoNode(*id))?, p, xml_id);
+            apply_options(d.node_mut(*id).ok_or(EngineError::NoNode(*id))?, p, xml_id, zoom_fade);
         }
         sel.deselect_uneditable(d);
         Ok(())

@@ -70,6 +70,8 @@ pub struct NodeExtras {
     /// As an instance of a dynamic symbol, its own appearance changes to objects of the symbol's
     /// art (see [`crate::symbol_overrides`]); empty for none.
     pub symbol_overrides: Vec<crate::SymbolOverride>,
+    /// Optional per-layer geographic detail visibility. Inactive in ordinary documents.
+    pub zoom_fade: Option<crate::ZoomFade>,
 }
 
 /// No extras: what [`Node::extras`] gives for a node without any.
@@ -97,6 +99,7 @@ pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
     compound_shape: false,
     shape_mode: crate::ShapeMode::Add,
     symbol_overrides: Vec::new(),
+    zoom_fade: None,
 };
 
 /// A node's [`NodeExtras`], if it has any ([`Node::extras`]). Extras that are all unset equal

@@ -55,6 +55,7 @@ impl Serialize for Node {
             e.symbol_overrides.is_empty(),
             e.geography.as_deref().is_none_or(crate::GeographicMetadata::is_empty),
             !e.detail_level,
+            e.zoom_fade.is_none(),
         ];
         let mut st = s.serialize_struct("Node", skips.iter().filter(|s| !**s).count())?;
         let mut skip = skips.into_iter();
@@ -98,6 +99,7 @@ impl Serialize for Node {
         field!("symbol_overrides", &e.symbol_overrides);
         field!("geography", &e.geography);
         field!("detail_level", &e.detail_level);
+        field!("zoom_fade", &e.zoom_fade);
         st.end()
     }
 }
@@ -240,6 +242,8 @@ pub(super) struct NodeWire {
     geography: Option<Box<crate::GeographicMetadata>>,
     #[serde(default)]
     detail_level: bool,
+    #[serde(default)]
+    zoom_fade: Option<crate::ZoomFade>,
 }
 
 impl From<NodeWire> for Node {
@@ -268,6 +272,7 @@ impl From<NodeWire> for Node {
             shape_mode: w.shape_mode,
             symbol_overrides: w.symbol_overrides,
             geography: w.geography.filter(|g| !g.is_empty()),
+            zoom_fade: w.zoom_fade,
         };
         Node {
             id: w.id,

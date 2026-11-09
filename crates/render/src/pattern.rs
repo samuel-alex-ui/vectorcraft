@@ -200,6 +200,7 @@ fn rasterize(
             visible: v.inverse().transform_rect_bbox(px_rect),
             px: 1.0 / v.determinant().abs().sqrt().max(1e-12),
             opts: &opts,
+            inherited_fade: None,
             ink,
             plates: None,
         };

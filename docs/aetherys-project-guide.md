@@ -168,3 +168,14 @@ alle Werkzeuge, Effekte oder große Szenen. Fit-Befehle bleiben vorerst begrenzt
 Der [Prüfbericht](aetherys-zoom-precision.md) beschreibt Einschränkungen und den
 lokalen App-Update-Befehl `bash packaging/macos/aetherys-app.sh --build`.
 Die langfristigen Produktziele bleiben unverändert.
+
+
+## Phase 1.5 – unabhängige Küstenkonturen mit weichem Zoom-Fade (Entwicklungsbranch)
+
+Der Benutzer zeichnet zuerst die grobe Form eines Kontinents, danach die mittlere und feine Form auf **getrennten vorhandenen VectorCraft-Ebenen**. Diese Repräsentationen bleiben unabhängig und werden nicht automatisch gegenseitig synchronisiert. Für eine größere Bucht zuerst die grobe Form anpassen, dann bei höherem Zoom die feinere.
+
+Weltkarten-Ebenen können optional je einen Fade-in- und Fade-out-Zoombereich erhalten. Beim Hineinzoomen geht ihre Deckkraft **kontinuierlich** über, statt bei einem harten Grenzwert umzuschalten. Die gespeicherte Vektorgeometrie und Ebenen-Deckkraft bleiben unverändert. Gewöhnliche VectorCraft-Dokumente nutzen diese Funktion nicht.
+
+**Wichtig:** Ein weicher Übergang zwischen verschiedenen *gefüllten* Küstenkonturen ist noch kein geometrisches Morphing: Im Zwischenbereich können beide Landflächen als Überlagerung sichtbar sein. Für Export und besondere Werkzeuge sind weitere Prüfungen erforderlich. Die konkrete Nutzung, JSON-Einstellungen, Prüfkommandos und Einschränkungen stehen in [`docs/aetherys-zoom-fade.md`](aetherys-zoom-fade.md).
+
+_Status: Implementierung auf `feature/aetherys-zoom-fade`; noch keine lokale Kompilierung oder Freigabe bestätigt._

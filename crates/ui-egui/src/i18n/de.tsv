@@ -5841,3 +5841,7 @@ breakText	Glyphs	Glyphen
 	Detail Levels	Detailstufen
 	New Detail Level	Neue Detailstufe
 	Deletes this detail level and its contents. Undo restores them.	Löscht diese Detailstufe samt Inhalt. Rückgängig stellt alles wieder her.
+	Zoom visibility	Sichtbarkeit nach Zoom
+	Use own zoom fade	Eigene Zoom-Überblendung
+	Fade in	Einblenden
+	Fade out	Ausblenden

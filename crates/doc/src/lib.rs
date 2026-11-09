@@ -69,6 +69,7 @@ pub mod text;
 pub mod trace;
 pub mod variables;
 pub mod xml_id;
+pub mod zoom_fade;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -151,6 +152,7 @@ pub use units::{ColorMode, Unit, parse_number};
 pub mod geography;
 pub use geography::{GeographicMetadata, MapSemantics};
 pub use vectorcraft_worldmap::WorldMap;
+pub use zoom_fade::ZoomFade;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Document {

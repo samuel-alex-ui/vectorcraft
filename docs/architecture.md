@@ -126,3 +126,11 @@ or hour estimate; no existing parity gap or milestone is closed.
 | Datum | Änderung |
 |---|---|
 | 2026-11-08 | minor: AETH-02, explizite Detailstufen mit Standardgruppen, History und nativem Versionsschutz. |
+
+## Aetherys AETH-03 (2026-11-09)
+
+**Status:** Feature-Branch zur Review. Die Kartenansicht reicht die nächste eigene Zoomregel an Teilbäume weiter. Einheitlich blendende Teilbäume werden gemeinsam komponiert. Paritätswerte und Aufwandsschätzungen bleiben unverändert. [Vertrag und Demonstration](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | AETH-03 übernimmt PR #5 und ergänzt Zoom-Fade-Vererbung. |

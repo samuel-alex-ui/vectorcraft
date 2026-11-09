@@ -8,7 +8,7 @@
 //! `dimPercent`. OK runs `layer.setProps`, `layer.new` or `layer.newSublayer`.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LAYER_COLORS, LayerColor, Node, NodeId, NodeKind};
+use vectorcraft_doc::{LAYER_COLORS, LayerColor, Node, NodeId, NodeKind, ZoomFade};
 
 use super::swatch_options::{grid, label};
 use super::{DialogSpec, form, run_and_close};
@@ -51,6 +51,19 @@ fn fields_of(n: &Node, xml_id: bool) -> serde_json::Map<String, Value> {
     f
 }
 
+/// Add optional map-specific controls to the existing Layer Options dialog.
+fn zoom_fields(fields: &mut serde_json::Map<String, Value>, fade: Option<ZoomFade>) {
+    fields.insert("worldMap".into(), json!(true));
+    fields.insert("zoomFadeEnabled".into(), json!(fade.is_some()));
+    fields.insert("fadeInEnabled".into(), json!(fade.is_some_and(|f| f.fade_in.is_some())));
+    fields.insert("fadeOutEnabled".into(), json!(fade.is_some_and(|f| f.fade_out.is_some())));
+    let inside = fade.and_then(|f| f.fade_in).unwrap_or([200.0, 500.0]);
+    let outside = fade.and_then(|f| f.fade_out).unwrap_or([2000.0, 5000.0]);
+    for (key, value) in [("fadeInStart", inside[0]), ("fadeInEnd", inside[1]), ("fadeOutStart", outside[0]), ("fadeOutEnd", outside[1])] {
+        fields.insert(key.into(), json!(value));
+    }
+}
+
 /// `ui.layerOptions {ids?|id?}`: open Layer Options for rows (default: the highlighted rows, else
 /// the current layer), filled in from the first.
 pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
@@ -73,6 +86,9 @@ pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
     let first = ids.first().and_then(|id| st.doc.node(*id)).ok_or("no such layer or object")?;
     let xml_id = app.session.prefs.identify_objects_by == "xmlId";
     let mut f = fields_of(first, xml_id);
+    if st.doc.world_map.is_some() && ids.len() == 1 {
+        zoom_fields(&mut f, first.extras().zoom_fade);
+    }
     f.insert("ids".into(), json!(ids.iter().map(|i| i.0).collect::<Vec<_>>()));
     f.insert("mode".into(), json!("edit"));
     app.ui.dialog = Some(Dialog { kind: KIND.into(), fields: f });
@@ -97,10 +113,15 @@ pub fn open_new(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
     let color = LayerColor::Preset((layers.len() % LAYER_COLORS.len()) as u8);
     let name = format!("Layer {i}");
     let name = if app.session.prefs.identify_objects_by == "xmlId" { vectorcraft_doc::xml_id::from_object_name(&name) } else { name };
-    let fields = json!({
+    let mut fields = json!({
         "mode": if sublayer { "newSublayer" } else { "new" }, "layer": true, "name": name, "color": color_field(color),
         "template": false, "locked": false, "visible": true, "printable": true, "preview": true, "dimImages": false, "dimPercent": 50,
     });
+    if st.doc.world_map.is_some()
+        && let Some(fields) = fields.as_object_mut()
+    {
+        zoom_fields(fields, None);
+    }
     app.ui.dialog = Some(Dialog::new(KIND, fields));
     Ok(Value::Null)
 }
@@ -112,6 +133,24 @@ fn toggle(ui: &mut egui::Ui, d: &mut Dialog, key: &str, text: &str, enabled: boo
         d.fields.insert(key.into(), json!(!v));
     }
     changed
+}
+
+fn fade_range(ui: &mut egui::Ui, d: &mut Dialog, flag: &str, start: &str, end: &str, name: &str) {
+    toggle(ui, d, flag, name, true);
+    if d.bool(flag) {
+        ui.horizontal(|ui| {
+            ui.label("From");
+            let lo = d.f64(start, 200.0);
+            if let Some(v) = widgets::range_field(ui, start, lo, 0.0313..=1_000_000.0, "×", 2, 92.0) {
+                d.fields.insert(start.into(), json!(v));
+            }
+            ui.label("to");
+            let hi = d.f64(end, 500.0);
+            if let Some(v) = widgets::range_field(ui, end, hi, 0.0313..=1_000_000.0, "×", 2, 92.0) {
+                d.fields.insert(end.into(), json!(v));
+            }
+        });
+    }
 }
 
 /// The size of the colour chip before each name in the Color list.
@@ -207,6 +246,17 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
         toggle(ui, d, "visible", tl!("Show"), true);
         toggle(ui, d, "locked", tl!("Lock"), true);
     }
+    if d.bool("worldMap") {
+        ui.separator();
+        ui.label(tl!("Zoom visibility"));
+        toggle(ui, d, "zoomFadeEnabled", tl!("Use own zoom fade"), true);
+        if d.bool("zoomFadeEnabled") {
+            ui.indent("map-zoom-fade", |ui| {
+                fade_range(ui, d, "fadeInEnabled", "fadeInStart", "fadeInEnd", tl!("Fade in"));
+                fade_range(ui, d, "fadeOutEnabled", "fadeOutStart", "fadeOutEnd", tl!("Fade out"));
+            });
+        }
+    }
     false
 }
 
@@ -225,6 +275,16 @@ pub(crate) fn params(d: &Dialog) -> (&'static str, Value) {
         p.insert("printable".into(), json!(d.bool("printable")));
         p.insert("preview".into(), json!(d.bool("preview")));
         p.insert("dimImages".into(), if d.bool("dimImages") { json!(d.f64("dimPercent", 50.0).clamp(0.0, 100.0)) } else { json!(false) });
+    }
+    if d.bool("worldMap") {
+        let range = |flag: &str, start: &str, end: &str| d.bool(flag).then(|| [d.f64(start, 200.0), d.f64(end, 500.0)]);
+        let fade = d.bool("zoomFadeEnabled").then(|| {
+            json!({
+                "fade_in": range("fadeInEnabled", "fadeInStart", "fadeInEnd"),
+                "fade_out": range("fadeOutEnabled", "fadeOutStart", "fadeOutEnd")
+            })
+        });
+        p.insert("zoomFade".into(), fade.unwrap_or(Value::Null));
     }
     match d.str("mode").as_str() {
         "new" => ("layer.new", Value::Object(p)),
@@ -298,6 +358,37 @@ mod tests {
         assert_eq!(n.display_name(), "Sky");
         assert!(matches!(n.kind, NodeKind::Layer { color: LayerColor::Custom([0, 255, 0]), dim_images: Some(30), preview: false, .. }));
         assert_eq!(app.session.doc().unwrap().history.undo.len(), undo + 1);
+    }
+
+    #[test]
+    fn world_map_layer_dialog_edits_zoom_fade_but_ordinary_dialog_does_not() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        app.run("file.newWorldMap", json!({})).unwrap();
+        let id = app.session.doc().unwrap().doc.layers[0].id;
+        app.run("ui.layerOptions", json!({"id":id.0})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().bool("worldMap"));
+        set(&mut app, "zoomFadeEnabled", json!(true));
+        set(&mut app, "fadeInEnabled", json!(false));
+        set(&mut app, "fadeOutEnabled", json!(true));
+        set(&mut app, "fadeOutStart", json!(200.0));
+        set(&mut app, "fadeOutEnd", json!(500.0));
+        let (_, p) = params(app.ui.dialog.as_ref().unwrap());
+        assert_eq!(p["zoomFade"], json!({"fade_in":null,"fade_out":[200.0,500.0]}));
+        super::super::confirm(&mut app).unwrap();
+        let fade = app.session.doc().unwrap().doc.node(id).unwrap().extras().zoom_fade.unwrap();
+        assert_eq!(fade.opacity(200.0), 1.0);
+        assert_eq!(fade.opacity(500.0), 0.0);
+        app.run("ui.layerOptions", json!({"id":id.0})).unwrap();
+        assert!(app.ui.dialog.as_ref().unwrap().bool("zoomFadeEnabled"));
+        assert!(app.ui.dialog.as_ref().unwrap().bool("fadeOutEnabled"));
+        app.ui.dialog = None;
+
+        let mut ordinary = VectorcraftApp::new(Session::new(), Default::default());
+        ordinary.run("file.new", json!({})).unwrap();
+        ordinary.run("ui.layerOptions", json!({})).unwrap();
+        let d = ordinary.ui.dialog.as_ref().unwrap();
+        assert!(!d.bool("worldMap"));
+        assert!(params(d).1.get("zoomFade").is_none());
     }
 
     #[test]
