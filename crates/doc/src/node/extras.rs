@@ -8,6 +8,8 @@ use super::{Node, PathData};
 /// them stay small ([`Node::extras`]).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeExtras {
+    /// Explicit world-map detail-level layer; independent of its display name.
+    pub detail_level: bool,
     /// World-map categories, text properties and optional geographic identity.
     pub geography: Option<Box<crate::GeographicMetadata>>,
     /// Opacity mask (Transparency panel). Its art lives here, outside the layer tree.
@@ -72,6 +74,7 @@ pub struct NodeExtras {
 
 /// No extras: what [`Node::extras`] gives for a node without any.
 pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
+    detail_level: false,
     geography: None,
     mask: None,
     trace: None,

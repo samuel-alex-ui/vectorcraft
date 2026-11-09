@@ -1,6 +1,6 @@
 # Aetherys / VectorCraft – Masterplan und Codex-Roadmap
 
-**Stand:** 2026-11-07  
+**Stand:** 2026-11-08
 **Status:** Produktziele mit verifiziertem Zwischenstand: AETH-01 auf eigenem Branch implementiert und lokal geprüft; weitere Funktionen geplant, Review offen.
 **Basis:** [Bisheriger Projektleitfaden](aetherys-project-guide.md) · [Technischer Weltkartenstatus](aetherys-world-map.md)
 
@@ -81,7 +81,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 |---|---|---|
 | 00 | Branch-/Dateistand konsolidieren | Tatsächlichen Basisbranch, abhängige PRs und aktuelle Karten-Datei dokumentieren; keine Datenverluste |
 | 01 | Datenmodell für Kartentypen und Identität | Schema bestätigt, Modell/Kommandos und Tests implementiert; lokale CI erfolgreich, Review/Nutzerprüfung offen |
-| 02 | Beliebig viele Detailstufen | Anlegen/Umbenennen/Löschen, Standard-Untergruppen, Persistenz und Migrationstests |
+| 02 | Beliebig viele Detailstufen ([Vertrag/Prüfbericht](aetherys-detail-levels.md), Nutzerverhalten bestätigt; Implementierung im Branch, Review offen) | Anlegen/Umbenennen/Löschen, Standard-Untergruppen, Persistenz und Migrationstests |
 | 03 | Ererbte Zoom-Fade-Regeln | Zoom-Start/Ende von Eltern mit optionalen Ausnahmen; vorhandenes Fade wiederverwenden |
 | 04 | Kartenmodus-MVP | Vordefinierte und benutzerdefinierte Modi; Speichern, Auswahl und UI |
 | 05 | Sichtbarkeits-Filter | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
@@ -119,3 +119,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 | Datum | Änderung |
 |---|---|
 | 2026-11-07 | AETH-01-Design und Kompatibilitätsrisiko verlinkt; Schema vom Nutzer bestätigt, Implementierung zur Prüfung; Review/Nutzerabnahme offen. |
+
+## AETH-02 – bestätigter Detailstufenvertrag (2026-11-08)
+
+Markierte oberste Layer, fünf Standardgruppen, gezieltes Erstellen ohne Migration bestehender Karten. Kopien lösen Entity-Verknüpfungen; Löschen samt Inhalt ist rückgängig. [Modell, Kommandos, Bedienung und Prüfbericht](aetherys-detail-levels.md). Zoomgrenzen und Fade-Vererbung folgen in AETH-03.

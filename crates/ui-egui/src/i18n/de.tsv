@@ -5837,3 +5837,7 @@ breakText	Glyphs	Glyphen
 	Create Swatch Legend	Farbfeldlegende erstellen
 	Create Swatch Legend…	Farbfeldlegende erstellen…
 	HEX	HEX
+
+	Detail Levels	Detailstufen
+	New Detail Level	Neue Detailstufe
+	Deletes this detail level and its contents. Undo restores them.	Löscht diese Detailstufe samt Inhalt. Rückgängig stellt alles wieder her.

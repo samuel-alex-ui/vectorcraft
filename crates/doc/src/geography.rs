@@ -165,6 +165,9 @@ impl GeographicMetadata {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MapSemantics {
+    /// Feature guard: older semantic readers reject this unknown field rather than lose levels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_levels_version: Option<u32>,
     pub schema_version: u32,
     /// Own category UUID -> display label. Built-in categories are not duplicated here.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "entries::<_, 1024, 64, 256>")]
@@ -172,12 +175,13 @@ pub struct MapSemantics {
 }
 impl Default for MapSemantics {
     fn default() -> Self {
-        Self { schema_version: SCHEMA_VERSION, categories: BTreeMap::new() }
+        Self { schema_version: SCHEMA_VERSION, categories: BTreeMap::new(), detail_levels_version: None }
     }
 }
 impl MapSemantics {
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.schema_version != SCHEMA_VERSION
+        if self.detail_levels_version.is_some_and(|v| v != 1)
+            || self.schema_version != SCHEMA_VERSION
             || self.categories.len() > 1024
             || self.categories.iter().any(|(id, label)| !user_category(id) || !text(label, 256))
         {
@@ -197,6 +201,9 @@ impl crate::Document {
         }
         let mut result = Ok(());
         let mut check = |n: &crate::Node| {
+            if n.extras().detail_level && (!n.is_layer() || self.map_semantics.as_ref().and_then(|s| s.detail_levels_version) != Some(1)) {
+                result = Err("detail levels require a layer and the detail-level schema guard");
+            }
             if let Some(g) = &n.extras().geography
                 && !g.is_empty()
             {

@@ -54,6 +54,7 @@ impl Serialize for Node {
             is_default(&e.shape_mode),
             e.symbol_overrides.is_empty(),
             e.geography.as_deref().is_none_or(crate::GeographicMetadata::is_empty),
+            !e.detail_level,
         ];
         let mut st = s.serialize_struct("Node", skips.iter().filter(|s| !**s).count())?;
         let mut skip = skips.into_iter();
@@ -96,6 +97,7 @@ impl Serialize for Node {
         field!("shape_mode", &e.shape_mode);
         field!("symbol_overrides", &e.symbol_overrides);
         field!("geography", &e.geography);
+        field!("detail_level", &e.detail_level);
         st.end()
     }
 }
@@ -236,11 +238,14 @@ pub(super) struct NodeWire {
     symbol_overrides: Vec<crate::SymbolOverride>,
     #[serde(default)]
     geography: Option<Box<crate::GeographicMetadata>>,
+    #[serde(default)]
+    detail_level: bool,
 }
 
 impl From<NodeWire> for Node {
     fn from(w: NodeWire) -> Self {
         let extras = NodeExtras {
+            detail_level: w.detail_level,
             mask: w.mask,
             trace: w.trace,
             wrap: w.wrap,

@@ -305,3 +305,11 @@ or hour estimate; no existing parity gap or milestone is closed.
 | Date | Change | Evidence |
 |---|---|---|
 | 2026-11-07 | minor | AETH-01 node metadata, native content guard and engine command integration; 13,065 workspace tests and all 12 CI gates passed (incremental compilation disabled); user review pending. |
+
+## Aetherys AETH-02 (2026-11-08)
+
+**Status:** Flexible, ausdrücklich markierte Detailstufen auf Feature-Branch; Review und macOS-Nutzerabnahme offen. [Vertrag, Engine-/Panel-Verhalten und Prüfbericht](aetherys-detail-levels.md). Alte Karten bleiben unverändert, keine automatische Migration; Fade/Modi folgen später. Paritätsscores und Stunden unverändert (Anwendungserweiterung).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-08 | minor: AETH-02, explizite Detailstufen mit Standardgruppen, History und nativem Versionsschutz. |
