@@ -537,7 +537,7 @@ fn new_sublayer(s: &mut Session, p: &Value) -> Result<Value> {
     add_layer(s, p, C, "New Sublayer", |_| Ok((Some(parent), index)))
 }
 
-fn delete_rows(s: &mut Session, p: &Value) -> Result<Value> {
+pub(super) fn delete_rows(s: &mut Session, p: &Value) -> Result<Value> {
     let ids = rows_param(s, p, "layer.delete")?;
     let st = s.doc()?;
     let ids = row_roots(&st.doc, &ids);
@@ -563,7 +563,7 @@ fn delete_rows(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({ "deleted": ids.len() }))
 }
 
-fn duplicate_rows(s: &mut Session, p: &Value) -> Result<Value> {
+pub(super) fn duplicate_rows(s: &mut Session, p: &Value) -> Result<Value> {
     let ids = rows_param(s, p, "layer.duplicate")?;
     let ids = row_roots(&s.doc()?.doc, &ids);
     if ids.is_empty() {

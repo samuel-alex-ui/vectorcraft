@@ -40,6 +40,7 @@
 //! those scrolled into view are laid out, so a document of many thousand objects costs no more
 //! per frame than a small one.
 
+mod detail_levels;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Weak};
 
@@ -183,6 +184,7 @@ pub(crate) const ROW_KEYS: &str = "ly-keys";
 
 /// The Layers panel: the layer tree with its click, drag and rename rules and the bottom buttons; Delete/Backspace after a row click delete the highlighted rows.
 pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+    detail_levels::show(app, ui);
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else { return };
     // A rename belongs to the document it started in (node ids are per document): drop it when

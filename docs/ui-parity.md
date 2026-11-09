@@ -614,3 +614,11 @@ estimate is reassessed; no full workspace CI is claimed for this phase.
 | Date | Change | Evidence |
 |---|---|---|
 | 2026-11-03 | minor | Final-boundary camera rounding; retained zoom limits; focused tests, Clippy and WASM check. |
+
+## Aetherys AETH-02 (2026-11-08)
+
+**Status:** Flexible, ausdrücklich markierte Detailstufen auf Feature-Branch; Review und macOS-Nutzerabnahme offen. [Vertrag, Engine-/Panel-Verhalten und Prüfbericht](aetherys-detail-levels.md). Alte Karten bleiben unverändert, keine automatische Migration; Fade/Modi folgen später. Paritätsscores und Stunden unverändert (Anwendungserweiterung).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-08 | minor: AETH-02, explizite Detailstufen mit Standardgruppen, History und nativem Versionsschutz. |

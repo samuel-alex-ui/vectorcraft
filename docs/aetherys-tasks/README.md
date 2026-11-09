@@ -1,6 +1,6 @@
 # Aetherys – Codex-Aufträge
 
-**Stand:** 2026-11-07 · **Status:** AETH-00 zur Prüfung in PR #10; AETH-01 nach Schemabestätigung implementiert und lokal geprüft, Review offen; weitere Phasen geplant. Keine neuen App-Funktionen allein durch diese Dokumentation.
+**Stand:** 2026-11-08 · **Status:** AETH-00 zur Prüfung in PR #10; AETH-01 nach Schemabestätigung implementiert und lokal geprüft, Review offen; weitere Phasen geplant. Keine neuen App-Funktionen allein durch diese Dokumentation.
 
 [Masterplan](../aetherys-masterplan.md) · [Älterer Projektleitfaden](../aetherys-project-guide.md)
 
@@ -18,6 +18,8 @@
 - [ ] [AETH-09 – Performance großer Karten](AETH-09.md)
 - [ ] [AETH-10 – 3D-Globusvorschau](AETH-10.md)
 - [ ] [AETH-11 – Spätere Erweiterungen](AETH-11.md)
+
+AETH-02: Verhalten bestätigt; [Implementierung und Prüfbericht](../aetherys-detail-levels.md) auf eigenem, auf AETH-01 gestapeltem Branch. Review/Nutzerabnahme offen.
 
 ## So arbeiten wir
 
