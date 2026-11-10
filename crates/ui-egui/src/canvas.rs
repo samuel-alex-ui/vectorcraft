@@ -217,7 +217,10 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         ui.painter().rect_filled(full, 0.0, t.panel_darker);
         return;
     }
-    let outer = full;
+    if app.ui.screen_mode < 3 {
+        crate::dialogs::map_modes::bar(app, ui);
+    }
+    let outer = ui.available_rect_before_wrap();
     let bars = app.ui.screen_mode < 2;
     let (full, rect) = view_rects(app, outer, ui.ctx().pixels_per_point());
     app.canvas_rect = Some(rect);

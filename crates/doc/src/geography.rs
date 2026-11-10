@@ -162,9 +162,54 @@ impl GeographicMetadata {
     }
 }
 
+/// Document-scoped presentation choices. Mode IDs do not refer to artwork or detail levels.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MapModes {
+    pub active: u32,
+    pub next_id: u32,
+    #[serde(deserialize_with = "mode_names")]
+    pub names: BTreeMap<u32, String>,
+}
+
+fn mode_names<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<u32, String>, D::Error> {
+    entries::<_, 128, 10, 256>(d)?
+        .into_iter()
+        .map(|(key, name)| {
+            let id = key.parse::<u32>().map_err(D::Error::custom)?;
+            if id.to_string() != key {
+                return Err(D::Error::custom("noncanonical map mode ID"));
+            }
+            Ok((id, name))
+        })
+        .collect()
+}
+
+impl MapModes {
+    pub const STARTER_NAMES: [&str; 6] = ["Geographic", "Biomes", "Political", "Climate", "Economy", "Infrastructure"];
+
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.names.len() > 128
+            || !self.names.contains_key(&self.active)
+            || self.names.iter().any(|(&id, name)| id == 0 || id >= self.next_id || !text(name, 256))
+        {
+            return Err("invalid map modes");
+        }
+        Ok(())
+    }
+}
+
+impl Default for MapModes {
+    fn default() -> Self {
+        Self { active: 1, next_id: 7, names: (1..).zip(Self::STARTER_NAMES.map(str::to_owned)).collect() }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MapSemantics {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modes: Option<MapModes>,
     /// Feature guard: older semantic readers reject this unknown field rather than lose levels.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail_levels_version: Option<u32>,
@@ -175,7 +220,7 @@ pub struct MapSemantics {
 }
 impl Default for MapSemantics {
     fn default() -> Self {
-        Self { schema_version: SCHEMA_VERSION, categories: BTreeMap::new(), detail_levels_version: None }
+        Self { schema_version: SCHEMA_VERSION, categories: BTreeMap::new(), detail_levels_version: None, modes: None }
     }
 }
 impl MapSemantics {
@@ -186,6 +231,9 @@ impl MapSemantics {
             || self.categories.iter().any(|(id, label)| !user_category(id) || !text(label, 256))
         {
             return Err("unsupported or invalid map semantics schema/categories");
+        }
+        if let Some(modes) = &self.modes {
+            modes.validate()?;
         }
         Ok(())
     }

@@ -49,6 +49,7 @@ pub mod library;
 pub mod linkfiles;
 pub mod links;
 mod live;
+mod map_modes;
 pub(crate) mod maskedit;
 pub(crate) mod menucmds;
 pub(crate) mod newart;
@@ -339,6 +340,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(addons::specs());
         v.extend(geography::specs());
         v.extend(detail_levels::specs());
+        v.extend(map_modes::specs());
         v
     })
 }
