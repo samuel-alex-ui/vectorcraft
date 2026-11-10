@@ -32,7 +32,7 @@ fn open_titles(ctx: &egui::Context, titles: &[(egui::Rect, egui::Id)]) -> Vec<us
 #[test]
 fn new_world_map_menu_command_creates_a_two_to_one_artboard() {
     let file = menu_tree().into_iter().find(|(label, _)| *label == "File").unwrap().1;
-    assert!(file.iter().any(|item| matches!(item, Item::Cmd("New World Map…", "file.newWorldMap", _))));
+    assert!(file.iter().any(|item| matches!(item, Item::Cmd("New World Map…", "ui.newWorldMap", _))));
 
     let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
     app.run("file.newWorldMap", json!({})).unwrap();

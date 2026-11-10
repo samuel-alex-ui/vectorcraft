@@ -5876,3 +5876,12 @@ breakText	Glyphs	Glyphen
 	Building	Gebäude
 	Edit Hidden Map Art	Ausgeblendete Kartenobjekte bearbeiten
 	Wrap Map Longitude	Karte an der Datumsgrenze umbrechen
+	New World Map…	Neue Weltkarte…
+	World Map Settings…	Weltkarten-Einstellungen…
+	Planet Name	Planetenname
+	Planet Radius in km (optional)	Planetenradius in km (optional)
+	Equirectangular	Äquirektangular
+	Map Extent	Kartenausdehnung
+	Enter a planet name.	Gib einen Planetennamen ein.
+	Enter a positive radius in kilometres.	Gib einen positiven Radius in Kilometern ein.
+	Projection	Projektion

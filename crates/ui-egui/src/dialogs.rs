@@ -127,6 +127,7 @@ pub mod transform_each;
 pub mod variables;
 mod warp_effect;
 pub mod width_point;
+pub mod world_map_settings;
 
 use serde_json::{Value, json};
 
@@ -403,6 +404,7 @@ registry! {
     EditViews: [edit_views::KIND] => edit_views::SPEC,
     PerspectivePlane: [perspective_plane::KIND] => perspective_plane::SPEC,
     LayerOptions: [layer_options::KIND] => layer_options::SPEC,
+    WorldMapSettings: [world_map_settings::KIND] => world_map_settings::SPEC,
     MapModes: [map_modes::KIND] => map_modes::SPEC,
     MapModeFilters: [map_mode_filters::KIND] => map_mode_filters::SPEC,
     LayersPanelOptions: [layers_panel_options::KIND] => layers_panel_options::SPEC,
