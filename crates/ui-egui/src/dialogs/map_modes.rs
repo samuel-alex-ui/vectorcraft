@@ -52,6 +52,9 @@ pub(crate) fn bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
         if ui.button(tl!("Configure Map Modes")).clicked() {
             let _ = app.run("ui.mapModes", json!({}));
         }
+        if ui.button(tl!("3D Globe")).clicked() {
+            let _ = app.run("ui.globe", json!({}));
+        }
         if ui.button(tl!("World Map Settings…")).clicked() {
             let _ = app.run("ui.worldMapSettings", json!({}));
         }

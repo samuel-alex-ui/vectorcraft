@@ -1,6 +1,6 @@
 # AETH-10: 3D-Globusvorschau
 
-**Status:** In Vorbereitung. Technischer Plan zur Abstimmung; Implementierung ausstehend.
+**Status:** Erste native Version umgesetzt. Review und macOS-Nutzerabnahme offen.
 
 **Reihenfolge:** 10 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
@@ -22,12 +22,12 @@ Nach tragfähiger Georeferenz und Nahtregeln: separate drehbare/zoombare read-on
 ## Abschluss-Checkliste
 
 - [x] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Beschreibung des nativen Tests
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
 
 ## Implementierungsplan
 
@@ -65,3 +65,29 @@ Planetenradius ist für die Darstellung der Einheitskugel optional.
 Über die Naht falsch gezeichnete Altgeometrie wird nicht automatisch
 umgedeutet. Terrainrelief, 3D-Bearbeitung und Streaming gehören nicht
 zum ersten Umfang.
+
+## Bedienung der ersten Version
+
+In einer Weltkarte **3D-Globus** in der Kartenmodusleiste öffnen. Mit der
+linken Maustaste ziehen und mit dem Mausrad zoomen. **2D-Karte zentrieren**
+schließt die Vorschau und setzt den Mittelpunkt der bestehenden 2D-Kamera.
+Zoom, Dokument und Undo-Historie bleiben dabei unverändert.
+
+Die native macOS-App wurde mit einer separat erzeugten synthetischen
+Weltkarte gestartet. Im Fenster wurden Farben und Küsten dargestellt.
+Mausdrag, Mausrad und Zentrieren wurden über die native Oberfläche geprüft.
+Der Globus zeigt die Vorschautextur mit maximal etwa 1024 × 512 Pixeln.
+Weitere Detailstufen werden über den 2D-Zoom gewählt. Die Vorschau übernimmt
+die Nahtregel der geöffneten Karte. Sie erzeugt keine eigene Kartendatei.
+
+An der Datumsgrenze tastet die Kugel die Textur periodisch ab. Der native
+Test zeigte eine durchgehende Insel, wenn ihr Umbruch im 2D-Bild sichtbar
+war. In der bestehenden 2D-Zeichenreihenfolge kann eine deckende Fläche
+im Originaldurchlauf zuvor gezeichneten Überstand überdecken. Das ist
+auch in der Globusvorschau sichtbar.
+
+
+`cargo test -p vectorcraft-ui-egui --lib dialogs::globe::tests`:
+zwei Tests bestanden. Geprüft sind Pole und periodische Abtastung,
+Globuszoom, echte 2D-Füllfarbe, Kartenmodusfilter, Wiederverwendung der
+Textur beim Drehen und Zentrieren ohne Dokumentänderung.

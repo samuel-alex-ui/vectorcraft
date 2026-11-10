@@ -5885,3 +5885,7 @@ breakText	Glyphs	Glyphen
 	Enter a planet name.	Gib einen Planetennamen ein.
 	Enter a positive radius in kilometres.	Gib einen positiven Radius in Kilometern ein.
 	Projection	Projektion
+	3D Globe	3D-Globus
+	Center 2D Map	2D-Karte zentrieren
+	Drag to rotate. Scroll to zoom.	Ziehen zum Drehen. Scrollen zum Zoomen.
+	Map extent is too small for the globe preview.	Die Kartenausdehnung ist für die Globusvorschau zu klein.
