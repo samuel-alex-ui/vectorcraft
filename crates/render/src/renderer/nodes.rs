@@ -245,7 +245,7 @@ impl Renderer {
         let image_left_out = self.image_left_out.replace(false);
         let failures = crate::paint::decode_failures();
         let pattern_images_left_out = crate::pattern::images_left_out();
-        self.draw_kept_node(&mut mctx, &Frame { mt: false, ink: Ink::Display, inherited_fade: None, ..*f }, &m.art);
+        self.draw_kept_node(&mut mctx, &Frame { mt: false, ink: Ink::Display, inherited_fade: None, map_styles: None, ..*f }, &m.art);
         let incomplete = self.image_left_out.unwrap_or(false)
             || crate::pattern::images_left_out() > pattern_images_left_out
             || (!f.opts.mark_undecoded_images && crate::paint::decode_failures() > failures);

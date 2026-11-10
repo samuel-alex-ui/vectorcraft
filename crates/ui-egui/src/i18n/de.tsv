@@ -5885,3 +5885,6 @@ breakText	Glyphs	Glyphen
 	Enter a planet name.	Gib einen Planetennamen ein.
 	Enter a positive radius in kilometres.	Gib einen positiven Radius in Kilometern ein.
 	Projection	Projektion
+	Map Mode Styles	Kartenmodusstile
+	Invalid style rules	Ungültige Stilregeln
+	The first matching category sets the fill color.	Die erste passende Kategorie bestimmt die Füllfarbe.

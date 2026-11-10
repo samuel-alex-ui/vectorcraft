@@ -132,6 +132,7 @@ pub(crate) struct Frame<'a> {
     pub(crate) opts: &'a RenderOptions,
     /// Fade inherited in a subtree containing explicit exceptions.
     pub(crate) inherited_fade: Option<vectorcraft_doc::ZoomFade>,
+    pub(crate) map_styles: Option<&'a vectorcraft_doc::geography::MapStyles>,
     /// What colours paint as: screen colours, or one ink plane of a CMYK document (see [`ink`]).
     pub(crate) ink: Ink,
     /// With Separations Preview, the tables placed images show the visible plates through.

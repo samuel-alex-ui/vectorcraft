@@ -68,3 +68,56 @@ fn mode_filters_apply_across_levels_and_compose_with_manual_visibility_and_zoom(
     run(&mut s, "file.new", json!({}));
     assert!(s.execute("map.mode.setFilter", &json!({"id":2,"rules":[]})).is_err());
 }
+
+#[test]
+fn ordered_mode_styles_change_only_visible_solid_fills() {
+    let mut s = Session::new();
+    run(&mut s, "file.newWorldMap", json!({}));
+    let mut shapes = Vec::new();
+    for x in [10, 40] {
+        let layer = run(&mut s, "map.detailLevel.create", json!({}))["id"].clone();
+        run(&mut s, "layer.setCurrent", json!({"id":layer}));
+        let id = run(&mut s, "shape.rectangle", json!({"x":x,"y":10,"width":20,"height":20}))["id"].clone();
+        run(&mut s, "paint.setFill", json!({"id":id,"color":"#ff0000"}));
+        run(&mut s, "map.setGeography", json!({"id":id,"geography":{"categories":["core:land","core:biome"]}}));
+        shapes.push((layer, id));
+    }
+    let art = s.doc().unwrap().doc.layers.clone();
+    let rules = json!([{"category":"core:biome","rgb":[0,255,0]},{"category":"core:land","rgb":[0,0,255]}]);
+    run(&mut s, "map.mode.setStyles", json!({"id":2,"rules":rules}));
+    let preview = |s: &Session, zoom| {
+        Renderer::new().render(&s.doc().unwrap().doc, 80, 40, Affine::IDENTITY, &RenderOptions { world_map_zoom: zoom, ..Default::default() })
+    };
+    assert_eq!(preview(&s, Some(1.0)).pixel(20, 20), [255, 0, 0, 255]);
+    run(&mut s, "map.mode.select", json!({"id":2}));
+    let export = Renderer::new().render_region(&s.doc().unwrap().doc, vectorcraft_geom::Rect::new(0.0, 0.0, 80.0, 40.0), 1.0, false);
+    for x in [20, 50] {
+        assert_eq!(preview(&s, Some(1.0)).pixel(x, 20), [0, 255, 0, 255]);
+        assert_eq!(export.pixel(x, 20), [255, 0, 0, 255]);
+    }
+    assert_eq!(s.doc().unwrap().doc.layers, art);
+    let styled = s.doc().unwrap().doc.clone();
+    let bytes = vectorcraft_format::save_with(&styled, &Default::default()).unwrap();
+    assert_eq!(vectorcraft_format::load(&bytes).unwrap().map_semantics, styled.map_semantics);
+    let reversed: Vec<_> = rules.as_array().unwrap().iter().rev().cloned().collect();
+    run(&mut s, "map.mode.setStyles", json!({"id":2,"rules":reversed}));
+    assert_eq!(preview(&s, Some(1.0)).pixel(20, 20), [0, 0, 255, 255]);
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc().unwrap().doc, styled);
+    run(&mut s, "edit.redo", json!({}));
+    assert_eq!(preview(&s, Some(1.0)).pixel(20, 20), [0, 0, 255, 255]);
+    let duplicate = run(&mut s, "map.mode.edit", json!({"action":"duplicate","id":2,"name":"Copy"}))["id"].clone();
+    run(&mut s, "map.mode.select", json!({"id":duplicate}));
+    assert_eq!(preview(&s, Some(1.0)).pixel(20, 20), [0, 0, 255, 255]);
+    run(&mut s, "map.mode.edit", json!({"action":"delete","id":duplicate}));
+    run(&mut s, "map.mode.select", json!({"id":2}));
+    assert!(s.execute("map.mode.setStyles", &json!({"id":2,"rules":[rules[0],rules[0]]})).is_err());
+    assert!(s.execute("map.mode.setStyles", &json!({"id":2,"rules":[{"category":"bad","rgb":[0,0,0]}]})).is_err());
+    run(&mut s, "layer.setProps", json!({"id":shapes[0].0,"zoomFade":{"fade_in":[1,3]}}));
+    assert_eq!(preview(&s, Some(1.0)).pixel(20, 20)[3], 0);
+    assert!((1..255).contains(&preview(&s, Some(2.0)).pixel(20, 20)[3]));
+    run(&mut s, "map.mode.setFilter", json!({"id":2,"rules":[{"kind":"category","id":"core:biome"}]}));
+    assert_eq!(preview(&s, Some(3.0)).pixel(50, 20)[3], 0);
+    run(&mut s, "file.new", json!({}));
+    assert!(s.execute("map.mode.setStyles", &json!({"id":2,"rules":rules})).is_err());
+}

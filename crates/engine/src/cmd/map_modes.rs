@@ -1,7 +1,7 @@
 //! Document-owned map mode catalogue and active choice.
 use super::{CommandSpec, Result, Session, bad, cmd};
 use serde_json::{Value, json};
-use vectorcraft_doc::geography::{MapFilter, MapFilterRule, MapModes, SCHEMA_VERSION};
+use vectorcraft_doc::geography::{MapFilter, MapFilterRule, MapModes, MapStyles, SCHEMA_VERSION};
 
 fn world(s: &Session) -> std::result::Result<(), String> {
     super::maskedit::outside_mask_editing(s)?;
@@ -25,6 +25,15 @@ pub fn specs() -> Vec<CommandSpec> {
             set_filter
         ),
         cmd!(
+            "map.mode.setStyles",
+            "Set Map Mode Styles",
+            [],
+            None,
+            "{id, rules: [{category, rgb: [r,g,b]}]} replace ordered display-only fill rules; [] clears them",
+            world,
+            set_styles
+        ),
+        cmd!(
             "map.mode.edit",
             "Configure Map Modes",
             [],
@@ -45,7 +54,7 @@ fn list(s: &mut Session, _: &Value) -> Result<Value> {
     let rows: Vec<_> = modes
         .names
         .into_iter()
-        .map(|(id, name)| json!({"id": id, "name": name, "rules": modes.filters.get(&id).map_or_else(Vec::new, |f| f.0.iter().collect::<Vec<_>>())}))
+        .map(|(id, name)| json!({"id": id, "name": name, "styles": modes.styles.get(&id).cloned().unwrap_or_default(), "rules": modes.filters.get(&id).map_or_else(Vec::new, |f| f.0.iter().collect::<Vec<_>>())}))
         .collect();
     Ok(json!({"active": modes.active, "modes": rows}))
 }
@@ -99,6 +108,9 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
             if let Some(filter) = target.and_then(|source| modes.filters.get(&source)).cloned() {
                 modes.filters.insert(id, filter);
             }
+            if let Some(styles) = target.and_then(|source| modes.styles.get(&source)).cloned() {
+                modes.styles.insert(id, styles);
+            }
             id
         }
         (Some("rename"), Some(id)) => {
@@ -112,6 +124,7 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
         (Some("delete"), Some(id)) => {
             modes.names.remove(&id);
             modes.filters.remove(&id);
+            modes.styles.remove(&id);
             let first = modes.names.keys().next().copied().ok_or_else(|| bad(C, "keep at least one map mode"))?;
             if modes.active == id {
                 modes.active = first;
@@ -143,5 +156,23 @@ fn set_filter(s: &mut Session, p: &Value) -> Result<Value> {
         modes.filters.insert(id, filter);
     }
     save(s, "Set Map Mode Filter", modes, C)?;
+    Ok(json!({"id": id}))
+}
+
+fn set_styles(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.mode.setStyles";
+    let mut modes = modes(s)?;
+    let id = mode_id(p, &modes, C)?;
+    let rules = p.get("rules").ok_or_else(|| bad(C, "missing style rules"))?;
+    let styles = <MapStyles as serde::Deserialize>::deserialize(rules).map_err(|e| bad(C, e.to_string()))?;
+    if modes.styles.get(&id).map_or(styles.0.is_empty(), |old| old == &styles) {
+        return Ok(json!({"id": id}));
+    }
+    if styles.0.is_empty() {
+        modes.styles.remove(&id);
+    } else {
+        modes.styles.insert(id, styles);
+    }
+    save(s, "Set Map Mode Styles", modes, C)?;
     Ok(json!({"id": id}))
 }

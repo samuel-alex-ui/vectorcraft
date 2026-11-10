@@ -257,25 +257,84 @@ impl<'de> Deserialize<'de> for MapFilter {
     }
 }
 
-fn mode_filters<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<u32, MapFilter>, D::Error> {
-    struct Read;
-    impl<'de> Visitor<'de> for Read {
-        type Value = BTreeMap<u32, MapFilter>;
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MapStyleRule {
+    #[serde(deserialize_with = "rule_text::<_, 64>")]
+    pub category: String,
+    pub rgb: [u8; 3],
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct MapStyles(pub Vec<MapStyleRule>);
+
+impl MapStyles {
+    pub const MAX_RULES: usize = 128;
+
+    pub fn fill_for(&self, node: &crate::Node) -> Option<[u8; 3]> {
+        let categories = &node.extras().geography.as_ref()?.categories;
+        self.0.iter().find(|rule| categories.contains(&rule.category)).map(|rule| rule.rgb)
+    }
+
+    fn validate(&self) -> Result<(), &'static str> {
+        let mut seen = BTreeSet::new();
+        if self.0.len() > Self::MAX_RULES
+            || self
+                .0
+                .iter()
+                .any(|rule| !(BUILTIN_CATEGORIES.contains(&rule.category.as_str()) || user_category(&rule.category)) || !seen.insert(&rule.category))
+        {
+            return Err("invalid or duplicate map style categories");
+        }
+        Ok(())
+    }
+}
+
+impl<'de> Deserialize<'de> for MapStyles {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Read;
+        impl<'de> Visitor<'de> for Read {
+            type Value = MapStyles;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("up to 128 ordered map style rules")
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<MapStyles, A::Error> {
+                let mut rules = Vec::new();
+                while let Some(rule) = seq.next_element()? {
+                    if rules.len() >= MapStyles::MAX_RULES {
+                        return Err(A::Error::custom("too many map style rules"));
+                    }
+                    rules.push(rule);
+                }
+                let styles = MapStyles(rules);
+                styles.validate().map_err(A::Error::custom)?;
+                Ok(styles)
+            }
+        }
+        d.deserialize_seq(Read)
+    }
+}
+
+fn mode_rules<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<BTreeMap<u32, T>, D::Error> {
+    struct Read<T>(PhantomData<T>);
+    impl<'de, T: Deserialize<'de>> Visitor<'de> for Read<T> {
+        type Value = BTreeMap<u32, T>;
         fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            f.write_str("filters for up to 128 map modes")
+            f.write_str("rules for up to 128 map modes")
         }
         fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-            let mut filters = BTreeMap::new();
+            let mut rules = BTreeMap::new();
             while let Some(id) = map.next_key::<u32>()? {
-                if filters.len() >= 128 || filters.contains_key(&id) {
-                    return Err(A::Error::custom("too many or duplicate mode filters"));
+                if rules.len() >= 128 || rules.contains_key(&id) {
+                    return Err(A::Error::custom("too many or duplicate mode entries"));
                 }
-                filters.insert(id, map.next_value()?);
+                rules.insert(id, map.next_value()?);
             }
-            Ok(filters)
+            Ok(rules)
         }
     }
-    d.deserialize_map(Read)
+    d.deserialize_map(Read(PhantomData))
 }
 
 /// Document-scoped presentation choices. Mode IDs do not refer to artwork or detail levels.
@@ -286,8 +345,10 @@ pub struct MapModes {
     pub next_id: u32,
     #[serde(deserialize_with = "mode_names")]
     pub names: BTreeMap<u32, String>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "mode_filters")]
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "mode_rules")]
     pub filters: BTreeMap<u32, MapFilter>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "mode_rules")]
+    pub styles: BTreeMap<u32, MapStyles>,
 }
 
 fn mode_names<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<u32, String>, D::Error> {
@@ -319,13 +380,25 @@ impl MapModes {
             }
             filter.validate()?;
         }
+        for (id, styles) in &self.styles {
+            if !self.names.contains_key(id) {
+                return Err("map style references an unknown mode");
+            }
+            styles.validate()?;
+        }
         Ok(())
     }
 }
 
 impl Default for MapModes {
     fn default() -> Self {
-        Self { active: 1, next_id: 7, names: (1..).zip(Self::STARTER_NAMES.map(str::to_owned)).collect(), filters: BTreeMap::new() }
+        Self {
+            active: 1,
+            next_id: 7,
+            names: (1..).zip(Self::STARTER_NAMES.map(str::to_owned)).collect(),
+            filters: BTreeMap::new(),
+            styles: BTreeMap::new(),
+        }
     }
 }
 
@@ -369,6 +442,13 @@ impl crate::Document {
         self.world_map?;
         let modes = self.map_semantics.as_ref()?.modes.as_ref()?;
         modes.filters.get(&modes.active).filter(|filter| !filter.0.is_empty())
+    }
+
+    /// Ordered display styles for the active mode.
+    pub fn active_map_styles(&self) -> Option<&MapStyles> {
+        self.world_map?;
+        let modes = self.map_semantics.as_ref()?.modes.as_ref()?;
+        modes.styles.get(&modes.active).filter(|styles| !styles.0.is_empty())
     }
 
     /// Validate the content-version guard and every stored geographic record, including library art.

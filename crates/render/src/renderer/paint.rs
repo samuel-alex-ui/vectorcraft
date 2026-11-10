@@ -38,6 +38,9 @@ impl Renderer {
             AppearanceItem::Stroke(st) => !solid(&st.paint),
         });
         let bounds = if needs_bounds { bp.bounding_box() } else { Rect::ZERO };
+        let override_paint = f.map_styles.and_then(|styles| styles.fill_for(n)).map(|[r, g, b]| {
+            vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(f32::from(r) / 255.0, f32::from(g) / 255.0, f32::from(b) / 255.0))
+        });
         for item in &n.appearance.items {
             match item {
                 AppearanceItem::Fill(fl) => {
@@ -50,8 +53,13 @@ impl Renderer {
                         ctx.push_layer(None, Some(blend_mode(fl.blend)), Some(fl.opacity), None, None);
                     }
                     ctx.set_transform(f.view);
-                    if paint::set_fill_paint(ctx, &fl.paint, bounds, f) {
-                        self.fold_alpha(ctx, f.ink, &fl.paint);
+                    let fill = if matches!(fl.paint, vectorcraft_color::Paint::Solid { .. }) {
+                        override_paint.as_ref().unwrap_or(&fl.paint)
+                    } else {
+                        &fl.paint
+                    };
+                    if paint::set_fill_paint(ctx, fill, bounds, f) {
+                        self.fold_alpha(ctx, f.ink, fill);
                         ctx.set_fill_rule(fill_rule(rule));
                         ctx.fill_path(bp);
                     }
