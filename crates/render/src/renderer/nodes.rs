@@ -130,7 +130,12 @@ impl Renderer {
     fn skipped(&mut self, f: &Frame, a: &Arc<Node>) -> bool {
         let skipped_view_item = (f.opts.skip_templates || f.opts.hide_templates) && matches!(a.kind, NodeKind::Layer { template: true, .. })
             || (f.opts.skip_templates || f.opts.hide_guides) && matches!(a.kind, NodeKind::Path { guide: true, .. });
-        if !a.visible || skipped_view_item || f.opts.hidden.contains(&a.id) || Self::edited_instance(f, a.id) {
+        if !a.visible
+            || skipped_view_item
+            || f.opts.hidden.contains(&a.id)
+            || Self::edited_instance(f, a.id)
+            || f.opts.world_map_zoom.is_some() && f.doc.active_map_filter().is_some_and(|filter| filter.hides(a))
+        {
             return true;
         }
         match self.bounds_of(f.symbols, a) {

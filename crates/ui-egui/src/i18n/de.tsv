@@ -5853,3 +5853,24 @@ breakText	Glyphs	Glyphen
 	Climate	Klima
 	Economy	Wirtschaft
 	Infrastructure	Infrastruktur
+	Map Mode Filters	Kartenmodusfilter
+	Hidden in this mode	In diesem Modus ausgeblendet
+	No filter rules	Keine Filterregeln
+	Missing group	Fehlende Gruppe
+	Invalid filter rules	Ungültige Filterregeln
+	Hide Category	Kategorie ausblenden
+	Hide Tag	Tag ausblenden
+	Hide Property Value	Eigenschaftswert ausblenden
+	Hide Highlighted Groups	Markierte Gruppen ausblenden
+	Highlight layers or groups in the Layers panel first.	Markiere zuerst Ebenen oder Gruppen im Ebenenpanel.
+	Category	Kategorie
+	Property	Eigenschaft
+	Ocean	Ozean
+	Lake	See
+	River	Fluss
+	Coastline	Küstenlinie
+	Biome	Biom
+	Road	Straße
+	Settlement	Siedlung
+	Parcel	Grundstück
+	Building	Gebäude
