@@ -151,7 +151,7 @@ pub use units::{ColorMode, Unit, parse_number};
 
 pub mod geography;
 pub use geography::{GeographicMetadata, MapSemantics};
-pub use vectorcraft_worldmap::WorldMap;
+pub use vectorcraft_worldmap::{GeographicPoint, WorldMap};
 pub use zoom_fade::ZoomFade;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

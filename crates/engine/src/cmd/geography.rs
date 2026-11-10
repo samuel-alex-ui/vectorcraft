@@ -45,6 +45,18 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         cmd!(query "map.entityRepresentations", "Geographic Entity Representations", [], None,
             "{entity: UUID} list document objects sharing this entity, including hidden variants, in paint order → {entity, objects: [{id, detailLevel}]}", world, representations),
+        cmd!(
+            "map.setRadius",
+            "Set Planet Radius",
+            [],
+            None,
+            "{radiusM: positive metres|null} set or clear the spherical planet radius, one undo step → {radiusM}",
+            world,
+            set_radius
+        ),
+        cmd!(query "map.measure", "Measure World Map", [], None,
+            "{from: [longitude,latitude], to: [longitude,latitude]} shortest spherical distance and local scale at from → {distanceM, distanceKm, metresPerPoint: {horizontal, vertical}}",
+            world, measure),
         cmd!(query "map.geographyInfo", "Geographic Metadata Info", [], None,
             "{ids?|id?} read metadata and category definitions; no inferred inheritance or geometry synchronization → {schema, objects: [{id, geography}]}", world, info),
     ]
@@ -187,4 +199,38 @@ fn representations(s: &mut Session, p: &Value) -> Result<Value> {
         });
     }
     Ok(json!({"entity": entity, "objects": objects}))
+}
+
+fn set_radius(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.setRadius";
+    let old = s.doc()?.doc.world_map.ok_or_else(|| bad(C, "requires a world map"))?;
+    let new = match p.get("radiusM") {
+        Some(Value::Null) => old.without_planet_radius(),
+        Some(v) => old
+            .with_planet_radius_m(v.as_f64().ok_or_else(|| bad(C, "give positive metres or null"))?)
+            .map_err(|_| bad(C, "radius must be finite and positive"))?,
+        None => return Err(bad(C, "give radiusM")),
+    };
+    if old != new {
+        s.edit("Set Planet Radius", |d, _| {
+            d.world_map = Some(new);
+            Ok(())
+        })?;
+    }
+    Ok(json!({"radiusM":new.planet_radius_m()}))
+}
+
+fn measure(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.measure";
+    let map = s.doc()?.doc.world_map.ok_or_else(|| bad(C, "requires a world map"))?;
+    let point = |key| -> Result<vectorcraft_doc::GeographicPoint> {
+        let [longitude_deg, latitude_deg] =
+            super::finite_numbers(p.get(key).unwrap_or(&Value::Null)).ok_or_else(|| bad(C, format!("give {key} as [longitude, latitude]")))?;
+        Ok(vectorcraft_doc::GeographicPoint { longitude_deg, latitude_deg })
+    };
+    let from = point("from")?;
+    let to = point("to")?;
+    let distance = map.distance_m(from, to).map_err(|e| bad(C, e.to_string()))?;
+    let (horizontal, vertical) = map.local_scale(from.latitude_deg).map_err(|e| bad(C, e.to_string()))?;
+    Ok(json!({"distanceM":distance, "distanceKm":distance / 1000.0, "metresPerPoint":{"horizontal":horizontal,"vertical":vertical}}))
 }
