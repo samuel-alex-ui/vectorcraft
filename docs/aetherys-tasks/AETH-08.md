@@ -1,6 +1,6 @@
 # AETH-08: Naht, Pole und Maße
 
-**Status:** Radius und Messung sind in main. Der automatische Umbruch liegt zur Review vor.
+**Status:** Abgeschlossen. Radius, Messung und automatischer Umbruch sind in `main` (PR #18 und #19). Die macOS-Nutzerabnahme steht aus.
 
 **Reihenfolge:** 08 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
@@ -22,12 +22,12 @@
 ## Abschluss-Checkliste
 
 - [x] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
 
 ## Teil 1 – Radius und Messung
 
