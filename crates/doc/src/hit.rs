@@ -228,6 +228,23 @@ pub fn hit_test(doc: &Document, p: Point, opt: HitOptions) -> Option<Hit> {
     hit_test_skipping(doc, p, opt, &|_| false, true)
 }
 
+/// Hit the displayed longitude copies in reverse paint order. The offset maps
+/// document art to its displayed copy and is held fixed during a gesture.
+pub fn hit_world_view(doc: &Document, p: Point, opt: HitOptions, zoom: Option<f64>) -> Option<(Hit, f64)> {
+    let hit = |p| match zoom {
+        Some(zoom) => hit_test_at_zoom(doc, p, opt, zoom),
+        None => hit_test(doc, p, opt),
+    };
+    let Some(map) = doc.world_map.filter(|map| map.longitude_wrap()) else {
+        return hit(p).map(|hit| (hit, 0.0));
+    };
+    let (width, height) = map.size();
+    if !(0.0..=width).contains(&p.x) || !(0.0..=height).contains(&p.y) {
+        return None;
+    }
+    map.longitude_offsets().into_iter().rev().find_map(|offset| hit(Point::new(p.x - offset, p.y)).map(|hit| (hit, offset)))
+}
+
 /// Map exclusions are inherited by every descendant. The nearest zoom rule still
 /// governs fades, including any explicit exception further down the tree.
 fn hidden_in_map_view(doc: &Document, id: NodeId, zoom: f64) -> bool {

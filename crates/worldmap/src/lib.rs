@@ -6,7 +6,7 @@
 //!
 //! Coordinate convention: west = -180°, east = +180°, north = +90°,
 //! south = -90°. The antimeridian has two *display* edges (x=0 and x=width).
-//! Callers must split geometries that cross this seam before drawing them.
+//! Optional display wrapping keeps the original continuous canvas geometry.
 
 /// Recommended initial world-map artboard dimensions, in VectorCraft points.
 /// These fit a conventional illustration document while preserving 2:1.
@@ -53,6 +53,7 @@ pub struct WorldMap {
     height: f64,
     planet_radius_m: Option<f64>,
     content_schema: Option<u32>,
+    wrap_longitude: bool,
 }
 
 impl WorldMap {
@@ -61,11 +62,26 @@ impl WorldMap {
         if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 || (width / 2.0 - height).abs() > height * 1e-9 {
             return Err(MapError::InvalidDimensions);
         }
-        Ok(Self { width, height, planet_radius_m: None, content_schema: None })
+        Ok(Self { width, height, planet_radius_m: None, content_schema: None, wrap_longitude: false })
     }
 
     pub fn standard() -> Self {
-        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT, planet_radius_m: None, content_schema: None }
+        Self { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT, planet_radius_m: None, content_schema: None, wrap_longitude: false }
+    }
+
+    /// Whether the editor and visual exports show neighbouring longitude copies.
+    pub fn longitude_wrap(self) -> bool {
+        self.wrap_longitude
+    }
+
+    pub fn with_longitude_wrap(mut self, enabled: bool) -> Self {
+        self.wrap_longitude = enabled;
+        self
+    }
+
+    /// Paint order for the two adjacent copies and the original canvas.
+    pub fn longitude_offsets(self) -> [f64; 3] {
+        [self.width, -self.width, 0.0]
     }
 
     /// Optional spherical planet radius, in metres. No Earth-sized default is assumed.
@@ -224,6 +240,12 @@ struct MapData {
     planet_radius_m: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     content_schema: Option<u32>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    wrap_longitude: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 impl TryFrom<MapData> for WorldMap {
@@ -231,6 +253,7 @@ impl TryFrom<MapData> for WorldMap {
 
     fn try_from(data: MapData) -> Result<Self, Self::Error> {
         let map = Self::new(data.width, data.height)?.with_content_schema(data.content_schema)?;
+        let map = map.with_longitude_wrap(data.wrap_longitude);
         match data.planet_radius_m {
             Some(radius) => map.with_planet_radius_m(radius),
             None => Ok(map),
@@ -246,6 +269,7 @@ impl From<WorldMap> for MapData {
             height: map.height,
             planet_radius_m: map.planet_radius_m,
             content_schema: map.content_schema,
+            wrap_longitude: map.wrap_longitude,
         }
     }
 }

@@ -52,6 +52,10 @@ pub(crate) fn bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
         if ui.button(tl!("Configure Map Modes")).clicked() {
             let _ = app.run("ui.mapModes", json!({}));
         }
+        let mut wrap = app.session.active().and_then(|st| st.doc.world_map).is_some_and(|map| map.longitude_wrap());
+        if ui.checkbox(&mut wrap, tl!("Wrap Map Longitude")).changed() {
+            let _ = app.run("map.setLongitudeWrap", json!({"enabled": wrap}));
+        }
         let editing = app.view().is_some_and(|v| v.edit_hidden_map_art);
         if ui.selectable_label(editing, tl!("Edit Hidden Map Art")).clicked() {
             let _ = app.run("ui.editHiddenMapArt", json!({}));

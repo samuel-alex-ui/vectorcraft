@@ -129,3 +129,50 @@ fn paired_coast_fills_preserve_coverage_and_use_one_outline() {
     doc.world_map = None;
     assert_eq!(render(&doc, Some(3.0)).pixels, render(&doc, None).pixels);
 }
+
+#[test]
+fn longitude_wrap_preserves_holes_and_clips_the_polar_edge() {
+    use vectorcraft_geom::{FillRule, Point};
+    let mut doc = Document::new(100.0, 50.0);
+    doc.world_map = Some(WorldMap::new(100.0, 50.0).unwrap().with_longitude_wrap(true));
+    let layer = doc.layers[0].id;
+    let mut ring = shapes::rectangle(Rect::new(90.0, -8.0, 120.0, 30.0));
+    ring.subpaths.extend(shapes::rectangle(Rect::new(104.0, 9.0, 114.0, 21.0)).subpaths);
+    let mut art = Node::path(doc.alloc_id(), ring, Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0));
+    if let vectorcraft_doc::NodeKind::Path { rule, .. } = &mut art.kind {
+        *rule = FillRule::EvenOdd;
+    }
+    let id = doc.insert(Some(layer), 0, art).unwrap();
+    let opts = RenderOptions { world_map_zoom: Some(3.0), ..Default::default() };
+    let image = Renderer::new().render(&doc, 120, 70, Affine::translate((5.0, 10.0)), &opts);
+    assert_eq!(image.pixel(7, 15)[3], 255);
+    assert_eq!(image.pixel(14, 25)[3], 0);
+    assert_eq!(image.pixel(7, 5)[3], 0);
+    assert_eq!(image.pixel(105, 15)[3], 0);
+    let hit = vectorcraft_doc::hit::hit_world_view(&doc, Point::new(2.0, 5.0), Default::default(), Some(3.0)).unwrap();
+    assert_eq!((hit.0.leaf, hit.1), (id, -100.0));
+    assert!(vectorcraft_doc::hit::hit_world_view(&doc, Point::new(9.0, 15.0), Default::default(), Some(3.0)).is_none());
+    let export = Renderer::new().render_region(&doc, Rect::new(0.0, 0.0, 100.0, 50.0), 1.0, false);
+    assert_eq!(export.pixel(2, 5)[3], 255);
+    assert_eq!(export.pixel(9, 15)[3], 0);
+    assert_eq!(doc.node_count(), 2);
+
+    let mut line = vectorcraft_geom::BezPath::new();
+    line.move_to((94.0, 40.0));
+    line.line_to((108.0, 40.0));
+    let stroke =
+        Node::path(doc.alloc_id(), vectorcraft_geom::PathData::from_bezpath(&line), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 2.0));
+    doc.insert(Some(layer), 1, stroke).unwrap();
+    doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(ZoomFade::new(Some([2.0, 3.0]), None).unwrap());
+    let mut renderer = Renderer::new();
+    let render = |r: &mut Renderer, d: &Document, zoom| {
+        r.render(d, 100, 50, Affine::IDENTITY, &RenderOptions { world_map_zoom: Some(zoom), ..Default::default() })
+    };
+    assert_eq!(render(&mut renderer, &doc, 3.0).pixel(3, 40)[3], 255);
+    assert_eq!(render(&mut renderer, &doc, 2.0).pixel(3, 40)[3], 0);
+    use vectorcraft_doc::geography::{MapFilter, MapFilterRule, MapModes};
+    let mut modes = MapModes::default();
+    modes.filters.insert(modes.active, MapFilter([MapFilterRule::Group { id: layer }].into_iter().collect()));
+    doc.map_semantics = Some(vectorcraft_doc::MapSemantics { modes: Some(modes), ..Default::default() });
+    assert_eq!(render(&mut renderer, &doc, 3.0).pixel(3, 40)[3], 0);
+}

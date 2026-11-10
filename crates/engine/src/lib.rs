@@ -198,6 +198,7 @@ pub struct Session {
     /// The pointer button is held: the last pointer event was a press or a drag, not a release or
     /// a move ([`Session::pointer_held`]).
     pub(crate) pointer_held: bool,
+    longitude_drag: Option<(u64, f64)>,
     /// A guide being dragged out of a ruler ([`Session::ruler_guide`]).
     pub(crate) ruler_guide: Option<vectorcraft_tools::rulerguide::NewGuide>,
     /// Which selected type overflows its frame, for the ports every tool but the Type tools shows.

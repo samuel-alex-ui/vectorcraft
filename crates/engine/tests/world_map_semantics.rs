@@ -212,3 +212,49 @@ fn radius_and_measurement_use_geographic_coordinates_and_preserve_map_content() 
     let mut ordinary = vectorcraft_testkit::fixtures::session();
     assert!(ordinary.execute("map.setRadius", &json!({"radiusM":1000})).is_err());
 }
+
+#[test]
+fn seam_drag_and_exports_keep_one_native_object() {
+    use vectorcraft_engine::{
+        ViewInfo,
+        tools::{PointerEvent, PointerKind},
+    };
+    use vectorcraft_geom::Affine;
+    use vectorcraft_render::{RenderOptions, Renderer};
+    let mut s = world();
+    let art = rect(&mut s, 990.0, 30.0, 30.0, 20.0);
+    exec(&mut s, "paint.setFill", json!({"id":art,"color":"#ff0000"}));
+    exec(&mut s, "map.setLongitudeWrap", json!({"enabled":true}));
+    exec(&mut s, "select.none", json!({}));
+    let old = s.doc().unwrap().doc.clone();
+    let view = ViewInfo { smart_guides: false, snap_to_point: false, ..Default::default() };
+    for (kind, x) in [(PointerKind::Down, 10.0), (PointerKind::Drag, 16.0), (PointerKind::Up, 16.0)] {
+        s.pointer(&PointerEvent::new(kind, x, 40.0), view).unwrap();
+    }
+    let moved = s.doc().unwrap().doc.clone();
+    assert_eq!(moved.node_count(), old.node_count());
+    assert!((moved.node(art).unwrap().geometric_bounds().unwrap().x0 - 996.0).abs() < 1e-6);
+    exec(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc().unwrap().doc, old);
+    let native = vectorcraft_format::save_with(&old, &Default::default()).unwrap();
+    let reopened = vectorcraft_format::load(&native).unwrap();
+    assert!(reopened.world_map.unwrap().longitude_wrap());
+    assert_eq!(reopened.layers, old.layers);
+    let svg = exec(&mut s, "document.serialize", json!({"format":"svg","preserveEditing":false,"useArtboards":true}));
+    let svg = svg["text"].as_str().unwrap();
+    assert!(svg.contains("clipPath"));
+    let drawn = vectorcraft_svg::import(svg).unwrap();
+    let view = Affine::translate((0.0, -25.0));
+    let image = Renderer::new().render(&drawn, 1000, 30, view, &RenderOptions::default());
+    assert_eq!(image.pixel(10, 15), [255, 0, 0, 255]);
+    let pdf = exec(&mut s, "document.serialize", json!({"format":"pdf","preserveEditing":true}));
+    let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+    let attachment = vectorcraft_pdf::editing(&bytes).unwrap();
+    let editable = vectorcraft_format::load(&attachment.data).unwrap();
+    assert_eq!(editable.layers, old.layers);
+    assert_eq!(editable.world_map, old.world_map);
+    let pages = vectorcraft_pdf::import(&bytes).unwrap();
+    let image = Renderer::new().render(&pages, 1000, 30, view, &RenderOptions::default());
+    assert_eq!(image.pixel(10, 15), [255, 0, 0, 255]);
+    assert_eq!(s.doc().unwrap().doc, old);
+}

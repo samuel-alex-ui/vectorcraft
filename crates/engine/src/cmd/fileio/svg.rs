@@ -171,7 +171,8 @@ pub(super) fn encode(doc: &Document, p: &Value, compressed: bool) -> Result<Enco
     let (full, warnings) = crate::cmd::place::document::full_documents(doc);
     // The artboards' background colors, behind the art (the editing data keeps them as colors).
     let filled = super::export::with_artboard_fills(&full, p, boards.iter().flatten().copied())?;
-    let doc = &*filled;
+    let wrapped = super::export::wrapped_vector_art(&filled);
+    let doc = &*wrapped;
     // A chosen artboard's file holds the art over it; otherwise the file holds all of it.
     let regions: Option<Vec<vectorcraft_geom::Rect>> =
         chosen.then(|| boards.iter().flatten().filter_map(|b| doc.artboards.get(*b)).map(|a| a.rect).collect());
