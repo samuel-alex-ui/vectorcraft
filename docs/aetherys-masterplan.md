@@ -1,7 +1,7 @@
 # Aetherys / VectorCraft – Masterplan und Codex-Roadmap
 
-**Stand:** 2026-11-08
-**Status:** Produktziele mit verifiziertem Zwischenstand: AETH-01 auf eigenem Branch implementiert und lokal geprüft; weitere Funktionen geplant, Review offen.
+**Stand:** 2026-11-10
+**Status:** AETH-01 bis AETH-05 sind in `main` integriert. AETH-06 liegt zur Review vor.
 **Basis:** [Bisheriger Projektleitfaden](aetherys-project-guide.md) · [Technischer Weltkartenstatus](aetherys-world-map.md)
 
 > **Ziel:** Eine einzige, geografisch konsistente Fantasywelt vom ganzen Planeten über Kontinente und Städte bis zu Grundstücken und Häusern in einem nativen 2D-Vektoreditor bearbeiten. Ein separater, nur lesender 3D-Globus dient später der Vorschau. Bestehende VectorCraft-Werkzeuge und Daten bleiben nutzbar.
@@ -85,7 +85,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 | 03 | [Ererbte Zoom-Fade-Regeln](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen) | Zoom-Start/Ende von Eltern mit optionalen Ausnahmen; vorhandenes Fade wiederverwenden |
 | 04 | [Kartenmodus-MVP](aetherys-map-modes.md) | Vordefinierte und benutzerdefinierte Modi; Speichern, Auswahl und UI |
 | 05 | [Sichtbarkeitsfilter](aetherys-mode-filters.md) | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
-| 06 | Editorzugriff & Übergangstests | Unsichtbare Objekte erreichbar; Undo, Export, Fade-Überlappungen |
+| 06 | [Editorzugriff & Küstenübergänge](aetherys-tasks/AETH-06.md) | Temporäre Bearbeitungsansicht, weiche Füllung und ein Küstenstrich für einfache Paare; Review und Nutzerabnahme offen |
 | 07 | Objektidentität & nahtlose LOD | Zusammenhang feiner/grober Geometrie; keine Rückpropagation |
 | 08 | Kartennaht, Maße & Skalierung | Antimeridian/Pole, echte Entfernungen nach optionaler Radiuswahl |
 | 09 | Großkarten-Performance | Culling, Segment-Indizes, Tile-/Cache-Konzept mit belastbaren Benchmarks |

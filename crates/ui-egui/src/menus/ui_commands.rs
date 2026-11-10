@@ -374,6 +374,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ),
     ("effect.last", "Last Effect…", "Cmd+Alt+Shift+E", "{} open the dialog of the last effect applied"),
     ("ui.mapModeFilters", "Map Mode Filters", "", "{id?} open filters for a world-map mode (default: active mode)"),
+    ("ui.editHiddenMapArt", "Edit Hidden Map Art", "", "{} toggle temporary editing of map art hidden by mode or zoom"),
     ("ui.mapModes", "Configure Map Modes", "", "{} open the world-map mode configuration dialog"),
     ("view.zoomIn", "Zoom In", "Cmd+=", "{}"),
     ("view.zoomOut", "Zoom Out", "Cmd+-", "{}"),

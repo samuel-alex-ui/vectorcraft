@@ -454,6 +454,7 @@ pub(crate) mod testutil {
             revision: (0, 0),
             selection: s,
             zoom: 1.0,
+            edit_hidden_map_art: false,
             isolation: None,
             paint: p,
             outline: false,

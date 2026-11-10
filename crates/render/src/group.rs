@@ -216,7 +216,7 @@ impl Renderer {
     }
 
     /// `draw` rendered into a new context of region `r` (frame `sub`), over `backdrop` if any.
-    fn offscreen(&mut self, r: Region, sub: &Frame, backdrop: Option<Arc<Pixmap>>, draw: &mut Content) -> Pixmap {
+    pub(crate) fn offscreen(&mut self, r: Region, sub: &Frame, backdrop: Option<Arc<Pixmap>>, draw: &mut Content) -> Pixmap {
         let mut ctx = sub.offscreen_context(r.w, r.h);
         if let Some(b) = &backdrop {
             draw_pixmap(&mut ctx, b.clone(), (0.0, 0.0));

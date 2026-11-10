@@ -684,6 +684,7 @@ fn run_ui_part8(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         }
         "ui.tileEdgeColor" => crate::dialogs::tile_edge_color::open(app),
         "ui.mapModeFilters" => crate::dialogs::map_mode_filters::open(app, p),
+        "ui.editHiddenMapArt" => crate::dialogs::map_modes::toggle_edit_hidden(app),
         "ui.mapModes" => crate::dialogs::map_modes::open(app),
         "ui.layerOptions" => crate::dialogs::layer_options::open(app, p),
         "ui.newLayer" => crate::dialogs::layer_options::open_new(app, p),

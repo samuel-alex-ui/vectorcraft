@@ -12,6 +12,9 @@ pub struct View {
     /// Document-scoped navigation policy, rebuilt from document metadata.
     #[serde(default)]
     pub world_map: bool,
+    /// Temporary editor override for map presentation rules.
+    #[serde(default)]
+    pub edit_hidden_map_art: bool,
     /// Screen points per document point (1.0 = 100%).
     pub zoom: f64,
     /// Document point at the centre of the canvas.
@@ -32,7 +35,16 @@ pub struct View {
 
 impl Default for View {
     fn default() -> Self {
-        Self { world_map: false, zoom: 1.0, center: Point::new(306.0, 396.0), fitted: false, rotation: 0.0, artboard: 0, outline: false }
+        Self {
+            world_map: false,
+            edit_hidden_map_art: false,
+            zoom: 1.0,
+            center: Point::new(306.0, 396.0),
+            fitted: false,
+            rotation: 0.0,
+            artboard: 0,
+            outline: false,
+        }
     }
 }
 
@@ -67,6 +79,7 @@ impl View {
     pub fn saved_for(v: &vectorcraft_engine::doc::SavedView, world_map: bool) -> Option<Self> {
         v.is_usable().then(|| Self {
             world_map,
+            edit_hidden_map_art: false,
             zoom: v.zoom.clamp(0.0313, if world_map { 1_000_000.0 } else { 640.0 }),
             center: v.center,
             fitted: true,
