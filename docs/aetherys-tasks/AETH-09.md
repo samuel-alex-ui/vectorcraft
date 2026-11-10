@@ -1,6 +1,7 @@
 # AETH-09: Performance für Großkarten
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Begonnen. Die Render-Baseline für den aktuellen Hauptbranch liegt zur Review vor.
+
 **Reihenfolge:** 09 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +21,38 @@ Prüfe zuerst Draft PR #6. Integriere nur validierte, testbare Teile für Sichtb
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Ist-Zustand und Abhängigkeiten geprüft
 - [ ] Offene Designfragen entschieden
 - [ ] Umsetzung isoliert und rückwärtskompatibel
 - [ ] Tests und Format-/Build-Prüfungen dokumentiert
 - [ ] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
 - [ ] Masterplan/Status aktualisiert
+
+## Erster Schritt: Render-Baseline
+
+Draft-PR #6 enthält einen begrenzten Gruppenindex, Tile-Adressierung und einen
+separaten Vorschau-Cache. Die früher gemeldete Indexmessung entstand auf
+einem älteren Stand. Der Draft enthält außerdem eine Kartendatei und bereits
+durch spätere Phasen abgedeckte Funktionen. Für diesen Schritt wurde nur
+das Benchmark-Konzept übernommen.
+
+```sh
+cargo test -p vectorcraft-render --test world_map_perf -- --ignored --nocapture
+```
+
+Synthetische Weltkarte mit 50.000 Rechtecken oder einem gefüllten Küstenpfad
+mit 32.000 Stützpunkten. Pro Fall drei Aufwärmframes, neun Messframes und
+24 Pixel horizontaler Versatz zwischen drei Kamerapositionen. Bildgröße
+1280 × 720. Der Küsten-Ausschnitt liegt bei 1.000.000× direkt auf der Kante.
+
+| Fall | 4× | 1.000.000× |
+|---|---:|---:|
+| 50.000 Pfade | 2,95 / 2,96 ms | 1,87 / 2,01 ms |
+| 32.000 Stützpunkte | 1,47 / 1,50 ms | 0,78 / 0,87 ms |
+
+Die Werte sind Mediane zweier lokaler Läufe im optimierten Testprofil bei
+hoher Systemlast. Sie dienen als Diagnose. Der Test prüft sichtbaren
+Bildinhalt und setzt keine Zeitgrenze. Filter und Nahtumbruch sind aus.
+Ein Leistungsgewinn durch einen Index, Segment-Culling oder Streaming ist
+damit noch nicht nachgewiesen.
