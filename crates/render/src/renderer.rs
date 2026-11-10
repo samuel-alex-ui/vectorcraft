@@ -32,6 +32,7 @@ impl Renderer {
             clips: FrameCache::new(lru::CLIP_BUDGET, 256),
             threads: default_threads(),
             geom: PtrMap::default(),
+            spatial: FrameCache::new(crate::spatial::CACHE_BUDGET, 32),
             symbols: vec![],
             plugin_revision: 0,
             strokes: PtrMap::default(),
@@ -199,6 +200,7 @@ impl Renderer {
         self.placed_arts.sweep(g);
         self.brushes.entries.sweep(g);
         self.live.sweep(g);
+        self.spatial.sweep(g);
     }
 
     /// Draw frame `f` (`w`×`h` pixels): the background, the artboards and the page's art.

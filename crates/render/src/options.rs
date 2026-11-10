@@ -37,6 +37,8 @@ pub struct RenderOptions {
     pub outline: bool,
     /// View-dependent geographic detail fading. None for exports/thumbnails and ordinary views.
     pub world_map_zoom: Option<f64>,
+    /// Disable the world-map group index for reference rendering.
+    pub disable_world_map_index: bool,
     /// Pasteboard colour behind everything (premultiplied RGBA8); `None` = transparent.
     pub background: Option<[u8; 4]>,
     /// Draw artboards as white rectangles (screen view). Export sets this to false.
@@ -192,6 +194,7 @@ impl Default for RenderOptions {
         Self {
             outline: false,
             world_map_zoom: None,
+            disable_world_map_index: false,
             background: None,
             artboards: false,
             hidden: vec![],

@@ -60,6 +60,7 @@ pub struct Renderer {
     /// Worker threads for the multithreaded rasterizer (0 = single-threaded).
     pub threads: u16,
     geom: PtrMap<usize, GeomEntry>,
+    spatial: FrameCache<usize, (Arc<Node>, spatial::SpatialIndex)>,
     /// The symbols (name and art) of the document last drawn, which `geom`'s bounds measured
     /// symbol instances by (see [`Self::check_symbols`]). The art is held weakly: the reference
     /// keeps the art's allocation, so no other art can get its address, and does not keep the
@@ -206,6 +207,7 @@ mod geometry;
 mod node_checks;
 mod options;
 mod renderer;
+mod spatial;
 mod text_geom;
 mod threads;
 
