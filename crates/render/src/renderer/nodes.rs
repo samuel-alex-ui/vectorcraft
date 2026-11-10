@@ -41,6 +41,7 @@ impl Renderer {
         let same = self.symbols.len() == doc.symbols.len()
             && self.symbols.iter().zip(&doc.symbols).all(|((name, art), s)| *name == s.name && std::ptr::eq(art.as_ptr(), Arc::as_ptr(&s.art)));
         if !same {
+            self.spatial.retain(|_| false);
             self.geom.retain(|_, e| !holds_instance(&e.node));
             self.symbols = doc.symbols.iter().map(|s| (s.name.clone(), Arc::downgrade(&s.art))).collect();
         }
@@ -59,6 +60,7 @@ impl Renderer {
             return;
         }
         self.plugin_revision = revision;
+        self.spatial.retain(|_| false);
         self.fx_geom.retain(|_, e| !effects::has_plugin_effect(&e.node));
         self.geom.retain(|_, e| !holds_plugin_effect(&e.node) && !holds_instance(&e.node));
         self.fx_arts.retain(|(node, ..)| !effects::has_plugin_effect(node));
@@ -440,7 +442,16 @@ impl Renderer {
                 self.draw_trace_view(ctx, f, children, Self::trace_view(f, n), knockout)
             }
             NodeKind::Layer { children, clip: false, .. } | NodeKind::Group { children, clip: false } => {
-                self.draw_children(ctx, f, children, knockout)
+                if f.doc.world_map.is_some()
+                    && !f.opts.disable_world_map_index
+                    && (128..=crate::spatial::MAX_INDEXED_MEMBERS).contains(&children.len())
+                    && !knockout
+                    && f.opts.isolated.is_none()
+                    && self.draw_indexed_children(ctx, f, n, children)
+                {
+                    return;
+                }
+                self.draw_children(ctx, f, children, knockout);
             }
             NodeKind::Group { children, clip: true } | NodeKind::Layer { children, clip: true, .. } if f.opts.outline => {
                 for c in children {
@@ -622,6 +633,33 @@ impl Renderer {
         let outer = self.fx_owner.replace(c.clone());
         self.draw_kept_node(ctx, f, c);
         self.fx_owner = outer;
+    }
+
+    fn draw_indexed_children(&mut self, ctx: &mut RenderContext, f: &Frame, parent: &Node, children: &[Arc<Node>]) -> bool {
+        let key = std::ptr::from_ref(parent) as usize;
+        let Some(entry) = self.geom.get(&key) else { return false };
+        let viewport = f.visible.inflate(f.px * 2.0, f.px * 2.0);
+        if !std::ptr::eq(Arc::as_ptr(&entry.node), parent)
+            || entry.bounds.is_none_or(|b| viewport.contains(b.origin()) && viewport.contains(vectorcraft_geom::Point::new(b.x1, b.y1)))
+        {
+            return false;
+        }
+        if self.spatial.get(&key, self.stamp).is_none() {
+            let owner = entry.node.clone();
+            let bounds = children.iter().enumerate().map(|(i, node)| (i, self.bounds_of(f.symbols, node)));
+            let index = crate::spatial::SpatialIndex::new(bounds, children.len());
+            let bytes = index.memory_bytes();
+            if !self.spatial.insert(key, (owner, index), bytes, self.stamp) {
+                return false;
+            }
+        }
+        let Some((_, index)) = self.spatial.get(&key, self.stamp) else { return false };
+        for i in index.candidates(viewport) {
+            if let Some(child) = children.get(i) {
+                self.draw_arc(ctx, f, child);
+            }
+        }
+        true
     }
 
     /// The children of a group: as the elements of a knockout group when `knockout`.

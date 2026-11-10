@@ -56,3 +56,26 @@ hoher Systemlast. Sie dienen als Diagnose. Der Test prüft sichtbaren
 Bildinhalt und setzt keine Zeitgrenze. Filter und Nahtumbruch sind aus.
 Ein Leistungsgewinn durch einen Index, Segment-Culling oder Streaming ist
 damit noch nicht nachgewiesen.
+
+## Gruppenindex
+
+Der konservative Bounds-Index aus Draft-PR #6 wird für geeignete
+Weltkartengruppen mit 128 bis 262.144 direkten Kindern verwendet. Die
+bestehende Cache-Infrastruktur begrenzt die abgeleiteten Indizes auf
+64 MiB. Geänderte Gruppen erhalten eine neue Identität. Änderungen an
+Symbolen oder Plugins verwerfen die Indizes. Kandidaten werden in der
+ursprünglichen Zeichenreihenfolge gerendert.
+
+Zwei gepaarte Läufe auf demselben Build, ohne → mit Index, in ms:
+
+| Fall | 4× | 1.000.000× |
+|---|---:|---:|
+| 50.000 Pfade | 3,21 → 2,15 / 3,26 → 2,07 | 1,59 → 0,31 / 1,59 → 0,35 |
+| 32.000 Stützpunkte | 1,39 → 1,39 / 1,37 → 1,36 | 0,74 → 0,78 / 0,74 → 0,73 |
+
+Messung mit warmem Cache und wechselnder Reihenfolge. Die Systemlast war
+hoch. Der Vergleich prüft jeden Frame pixelgenau. Zusätzlich bestanden
+der Bildvergleich nach einer Gruppenänderung bei gedrehter Kamera und die
+fünf Weltkarten-Renderregressionstests. Aufbaukosten und weitere reale
+Lastprofile wurden nicht gemessen. Einzelpfad-Segmentierung,
+Tile-Cache und Streaming sind weiterhin offen.
