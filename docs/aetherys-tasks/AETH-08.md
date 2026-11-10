@@ -46,3 +46,18 @@ von der Messung und vom Setzen des Radius unberührt.
 
 Dieser Teil ändert keine Darstellung oder Bearbeitung von Nahtgeometrien.
 Die explizite Naht- und Polregel wird getrennt abgestimmt.
+## Bestätigte Regel für den automatischen Umbruch
+
+Der Umbruch ist pro Weltkarte ausdrücklich einschaltbar. Alte Karten behalten
+die bisherige Darstellung. Ein Pfad darf in Dokumentpunkten durchgehend über
+den linken oder rechten Kartenrand hinauslaufen. Sein Überstand erscheint mit
+einem horizontalen Versatz um die Kartenbreite auf der Gegenseite. Linien,
+Füllungen und Löcher gehören weiterhin zum selben Vektorobjekt. An den Polen
+begrenzt der Kartenrand die Darstellung, ohne Spiegelung oder vertikale
+Wiederholung. Die Regel gilt für Ansicht, Bearbeitung und Export.
+
+Für die Umsetzung müssen Renderkopie und Auswahl denselben Versatz verwenden.
+Eine Bearbeitung auf der Gegenseite muss die Mausposition ins Original
+zurückrechnen und den Versatz über den gesamten Drag beibehalten. Raster- und
+Vektorexport müssen dieselbe Kartenkante verwenden. Der native Dateiexport
+speichert Originalgeometrie und die Kartenoption, keine Kopien.
