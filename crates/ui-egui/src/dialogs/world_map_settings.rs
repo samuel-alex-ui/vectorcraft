@@ -98,8 +98,9 @@ mod tests {
         assert!(app.session.active().is_none());
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
-        let output = ctx.run_ui(Default::default(), |ui| super::super::show(&mut app, ui.ctx()));
+        let mut output = ctx.run_ui(Default::default(), |ui| super::super::show(&mut app, ui.ctx()));
         assert!(!output.shapes.is_empty());
+        output.textures_delta.clear();
         field(&mut app, "name", "Eldoria");
         field(&mut app, "radiusKm", "-2");
         assert!(super::super::confirm(&mut app).is_err());
