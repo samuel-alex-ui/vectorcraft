@@ -605,6 +605,9 @@ pub(crate) fn world_map_new(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(created) = p.get("created") {
         params["created"] = created.clone();
     }
+    if let Some(name) = p.get("name") {
+        params["name"] = name.clone();
+    }
     file_new_with_map(s, &params, true)
 }
 

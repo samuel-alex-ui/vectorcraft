@@ -23,7 +23,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New World Map…",
             ["File"],
             None,
-            "{created?: Unix seconds|null (default now)} create a full-world equirectangular document with persistent geographic metadata (1000 × 500 points)",
+            "{name?: document title, created?: Unix seconds|null (default now)} create a full-world equirectangular document with persistent geographic metadata (1000 × 500 points)",
             always,
             super::newdoc::world_map_new
         ),
