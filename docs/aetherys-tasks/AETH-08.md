@@ -1,6 +1,6 @@
 # AETH-08: Naht, Pole und Maße
 
-**Status:** Teil 1 (Radius und Messung) umgesetzt. Naht- und Polgeometrie in Abstimmung.
+**Status:** Abgeschlossen. Radius, Messung und automatischer Umbruch sind in `main` (PR #18 und #19). Die macOS-Nutzerabnahme steht aus.
 
 **Reihenfolge:** 08 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
@@ -22,12 +22,12 @@
 ## Abschluss-Checkliste
 
 - [x] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
 
 ## Teil 1 – Radius und Messung
 
@@ -45,4 +45,45 @@ eine Kugel. Kamera, Layer, Zoom-Fades und gespeicherte Geometrien bleiben
 von der Messung und vom Setzen des Radius unberührt.
 
 Dieser Teil ändert keine Darstellung oder Bearbeitung von Nahtgeometrien.
-Die explizite Naht- und Polregel wird getrennt abgestimmt.
+Der automatische Umbruch folgt im separaten Naht-PR.
+## Bestätigte Regel für den automatischen Umbruch
+
+Der Umbruch ist pro Weltkarte ausdrücklich einschaltbar. Alte Karten behalten
+die bisherige Darstellung. Ein Pfad darf in Dokumentpunkten durchgehend über
+den linken oder rechten Kartenrand hinauslaufen. Sein Überstand erscheint mit
+einem horizontalen Versatz um die Kartenbreite auf der Gegenseite. Linien,
+Füllungen und Löcher gehören weiterhin zum selben Vektorobjekt. An den Polen
+begrenzt der Kartenrand die Darstellung, ohne Spiegelung oder vertikale
+Wiederholung. Die Regel gilt für Ansicht, Bearbeitung und Export.
+
+### Bedienung und Grenzen
+
+In der Modusleiste **Karte an der Datumsgrenze umbrechen** aktivieren oder
+`map.setLongitudeWrap {"enabled":true}` aufrufen. Den Pfad über eine
+Seitenkante hinaus zeichnen. Ein Klick und ein Ziehen auf der Gegenseite
+bearbeiten dieselbe Objekt-ID. Die Modusfilter und Zoom-Fades gelten für beide
+Seiten der Kartenansicht. Native Dateien und native Bearbeitungsanhänge
+enthalten nur die Originalgeometrie und die Option.
+
+Der Renderer und der SVG/PDF-Ausgabepfad verwenden die beiden angrenzenden
+Längenumläufe und schneiden das Ergebnis an der Kartenfläche ab. SVG/PDF
+verwenden wie bisher die manuelle Sichtbarkeit. Andere Vektorformate und
+separate PSD-Ebenen sind für den Umbruch nicht verifiziert. Auswahlgriffe
+bleiben in der ursprünglichen Geometrie. Der Umbruch interpretiert vorhandene
+lange Segmente nicht als kurze Verbindungen und erzeugt keine geometrische
+Polkappe oder Wiederholungen über mehrere Weltbreiten.
+
+Beispiel auf einer neuen Standardweltkarte: Ein gefülltes Rechteck von
+x=990 bis x=1020 zeichnen und umbrechen. Sein rechter Überstand erscheint
+von x=0 bis x=20. Bei y<0 wird die Zeichnung an der nördlichen Polkante
+beschnitten. Einen geschlossenen Innenring mit Even-Odd-Füllregel hinzufügen,
+um ein über die Naht laufendes Loch zu prüfen.
+
+### Gezielte Prüfung
+
+Fünf Renderer-Tests bestanden. Die Nahtprüfung deckt Linie, gefüllte Fläche,
+Loch, Polkante, Rasterausgabe, Kartenmodusfilter und Zoom-Fade ab. Der
+Engine-Test prüft Auswahl und Ziehen auf der Gegenseite, Undo, nativen
+Roundtrip, SVG und PDF. Das PDF enthält weiterhin das unveränderte native
+Original als Bearbeitungsanhang. Worldmap-Tests, UI-Buildprüfung und
+Formatprüfung bestanden. Die macOS-Nutzerabnahme steht aus.

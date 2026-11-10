@@ -282,11 +282,27 @@ impl ToolContext<'_> {
     }
 
     pub fn marquee(&self, r: vectorcraft_geom::Rect, scope: Option<NodeId>, leaves: bool) -> Vec<NodeId> {
-        if self.edit_hidden_map_art {
-            vectorcraft_doc::hit::marquee(self.doc, r, scope, leaves)
-        } else {
-            vectorcraft_doc::hit::marquee_at_zoom(self.doc, r, scope, leaves, self.zoom)
+        let collect = |r| {
+            if self.edit_hidden_map_art {
+                vectorcraft_doc::hit::marquee(self.doc, r, scope, leaves)
+            } else {
+                vectorcraft_doc::hit::marquee_at_zoom(self.doc, r, scope, leaves, self.zoom)
+            }
+        };
+        let Some(map) = self.doc.world_map.filter(|map| map.longitude_wrap()) else {
+            return collect(r);
+        };
+        let (width, height) = map.size();
+        let r = r.intersect(vectorcraft_geom::Rect::new(0.0, 0.0, width, height));
+        if r.width() <= 0.0 || r.height() <= 0.0 {
+            return Vec::new();
         }
+        let mut seen = std::collections::HashSet::new();
+        map.longitude_offsets()
+            .into_iter()
+            .flat_map(|offset| collect(r + vectorcraft_geom::Vec2::new(-offset, 0.0)))
+            .filter(|id| seen.insert(*id))
+            .collect()
     }
 
     pub fn selected_hidden_at(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions, selected: &[NodeId]) -> Option<NodeId> {

@@ -49,6 +49,10 @@ pub(super) fn changed_pixels(
     if opts.mask_view.is_some() {
         return None;
     }
+    // An edit at one edge can invalidate pixels at the opposite edge.
+    if [shown.as_ref(), doc].into_iter().any(|doc| doc.world_map.is_some_and(|map| map.longitude_wrap())) {
+        return None;
+    }
     // Changing one layer can enable or disable the paired coastline pass for both.
     if let Some(zoom) = opts.world_map_zoom
         && [shown.as_ref(), doc].into_iter().any(|doc| {

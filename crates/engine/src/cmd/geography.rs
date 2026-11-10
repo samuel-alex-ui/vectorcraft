@@ -57,6 +57,15 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!(query "map.measure", "Measure World Map", [], None,
             "{from: [longitude,latitude], to: [longitude,latitude]} shortest spherical distance and local scale at from → {distanceM, distanceKm, metresPerPoint: {horizontal, vertical}}",
             world, measure),
+        cmd!(
+            "map.setLongitudeWrap",
+            "Wrap World Map Longitude",
+            [],
+            None,
+            "{enabled: bool} wrap longitude at the two horizontal map edges → {enabled}",
+            world,
+            set_longitude_wrap
+        ),
         cmd!(query "map.geographyInfo", "Geographic Metadata Info", [], None,
             "{ids?|id?} read metadata and category definitions; no inferred inheritance or geometry synchronization → {schema, objects: [{id, geography}]}", world, info),
     ]
@@ -233,4 +242,17 @@ fn measure(s: &mut Session, p: &Value) -> Result<Value> {
     let distance = map.distance_m(from, to).map_err(|e| bad(C, e.to_string()))?;
     let (horizontal, vertical) = map.local_scale(from.latitude_deg).map_err(|e| bad(C, e.to_string()))?;
     Ok(json!({"distanceM":distance, "distanceKm":distance / 1000.0, "metresPerPoint":{"horizontal":horizontal,"vertical":vertical}}))
+}
+
+fn set_longitude_wrap(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.setLongitudeWrap";
+    let enabled = p.get("enabled").and_then(Value::as_bool).ok_or_else(|| bad(C, "give enabled as a boolean"))?;
+    let old = s.doc()?.doc.world_map.ok_or_else(|| bad(C, "requires a world map"))?;
+    if old.longitude_wrap() != enabled {
+        s.edit("Wrap World Map Longitude", |d, _| {
+            d.world_map = Some(old.with_longitude_wrap(enabled));
+            Ok(())
+        })?;
+    }
+    Ok(json!({"enabled":enabled}))
 }

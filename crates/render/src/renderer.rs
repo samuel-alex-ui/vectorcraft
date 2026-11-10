@@ -231,7 +231,19 @@ impl Renderer {
         }
         (self.nested, self.backdrop, self.picture) = (0, None, None);
         self.clip_paths.clear();
-        if opts.trim && !f.doc.artboards.is_empty() {
+        if let Some(map) = f.doc.world_map.filter(|map| map.longitude_wrap()) {
+            let (width, height) = map.size();
+            let boundary = Rect::new(0.0, 0.0, width, height).to_path(0.1);
+            let clip = Composite { clip: Some((&boundary, FillRule::NonZero)), blends: true, ..Default::default() };
+            self.group(&mut ctx, f, clip, &mut |r, c, fr| {
+                for offset in map.longitude_offsets() {
+                    let shift = Affine::translate((offset, 0.0));
+                    let view = fr.view * shift;
+                    let visible = shift.inverse().transform_rect_bbox(fr.visible);
+                    r.draw_page(c, &Frame { view, visible, ..*fr });
+                }
+            });
+        } else if opts.trim && !f.doc.artboards.is_empty() {
             let mut clip = BezPath::new();
             for ab in &f.doc.artboards {
                 clip.extend(ab.rect.path_elements(0.1));

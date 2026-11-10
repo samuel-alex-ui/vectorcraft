@@ -87,6 +87,45 @@ pub fn export_source<'a>(st: &'a DocState, p: &Value) -> Result<Cow<'a, Document
     Ok(Cow::Owned(d))
 }
 
+/// Materialize the visible longitude copies only for vector encoders. Their
+/// native editing attachments must always be generated from the original document.
+pub(super) fn wrapped_vector_art(doc: &Document) -> Cow<'_, Document> {
+    let Some(map) = doc.world_map.filter(|map| map.longitude_wrap()) else {
+        return Cow::Borrowed(doc);
+    };
+    let (width, height) = map.size();
+    let boundary = vectorcraft_geom::Rect::new(0.0, 0.0, width, height);
+    let mut output = doc.clone();
+    let clip = Node::path(output.alloc_id(), vectorcraft_geom::shapes::rectangle(boundary), Default::default());
+    let mut children = vec![Arc::new(clip)];
+    let symbols = doc.symbol_boxes();
+    for offset in map.longitude_offsets() {
+        if offset == 0.0 {
+            children.extend(doc.layers.iter().cloned());
+            continue;
+        }
+        let shift = vectorcraft_geom::Affine::translate((offset, 0.0));
+        for layer in &doc.layers {
+            if layer.visual_bounds_with(&symbols).is_some_and(|bounds| {
+                let overlap = shift.transform_rect_bbox(bounds).intersect(boundary);
+                overlap.width() > 0.0 && overlap.height() > 0.0
+            }) {
+                let mut copy = output.reid(layer);
+                copy.transform(shift, false);
+                children.push(Arc::new(copy));
+            }
+        }
+    }
+    let mut layer = Node::layer(output.alloc_id(), "World Map", vectorcraft_doc::LayerColor::Preset(0));
+    layer.set_clips(true);
+    if let Some(target) = layer.children_mut() {
+        *target = children;
+    }
+    output.layers = vec![Arc::new(layer)];
+    output.world_map = Some(map.with_longitude_wrap(false));
+    Cow::Owned(output)
+}
+
 /// `n` with only the parts in `keep` (whole, with everything inside them), `None` when none is.
 fn selected_part(n: &Node, keep: &HashSet<NodeId>) -> Option<Node> {
     if keep.contains(&n.id) {

@@ -359,6 +359,41 @@ impl Session {
         self.tool_panic.take().map_or(Ok(()), Err)
     }
 
+    fn longitude_pointer(&mut self, ev: &PointerEvent, view: ViewInfo) -> PointerEvent {
+        let mut event = *ev;
+        if matches!(ev.kind, PointerKind::Down | PointerKind::Move | PointerKind::DoubleClick) {
+            self.longitude_drag = None;
+            if let Some(st) = self.active()
+                && st.doc.world_map.is_some_and(|map| map.longitude_wrap())
+                && vectorcraft_tools::catalog::is_selection_tool(self.tool.id())
+            {
+                let opt = vectorcraft_doc::hit::HitOptions {
+                    scope: st.isolation,
+                    tol: self.prefs.selection_tolerance / view.zoom.max(1e-9),
+                    outline: view.outline,
+                    skip_guides: !view.guides,
+                    path_only: self.prefs.object_selection_by_path_only,
+                    type_path_only: self.prefs.type_selection_by_path_only,
+                    clip_outlines: true,
+                    ..Default::default()
+                };
+                let zoom = (!view.edit_hidden_map_art).then_some(view.zoom);
+                if let Some((_, offset)) = vectorcraft_doc::hit::hit_world_view(&st.doc, ev.pos, opt, zoom) {
+                    self.longitude_drag = Some((st.uid, offset));
+                }
+            }
+        }
+        if let Some((uid, offset)) = self.longitude_drag
+            && self.active().is_some_and(|st| st.uid == uid)
+        {
+            event.pos.x -= offset;
+        }
+        if ev.kind == PointerKind::Up {
+            self.longitude_drag = None;
+        }
+        event
+    }
+
     /// Feed a pointer event to the active tool. Returns requests for the UI.
     pub fn pointer(&mut self, ev: &PointerEvent, view: ViewInfo) -> Result<Vec<UiRequest>> {
         self.last_view = view;
@@ -371,6 +406,19 @@ impl Session {
         if let Some(r) = self.plane_widget_pointer(ev, view) {
             return r;
         }
+        if matches!(ev.kind, PointerKind::Down | PointerKind::Move | PointerKind::DoubleClick)
+            && vectorcraft_tools::catalog::is_selection_tool(self.tool.id())
+            && let Some(map) = self.active().and_then(|st| st.doc.world_map).filter(|map| map.longitude_wrap())
+        {
+            let (width, height) = map.size();
+            if !(0.0..=width).contains(&ev.pos.x) || !(0.0..=height).contains(&ev.pos.y) {
+                self.longitude_drag = None;
+                self.pointer_held = false;
+                self.tool_hover_ended(view);
+                return Ok(Vec::new());
+            }
+        }
+        let ev = &self.longitude_pointer(ev, view);
         self.leave_draw_inside(ev, view)?;
         let ev = &self.lend_selection_tool(ev);
         let acts = self.with_tool_cx(view, |t, cx| t.pointer(cx, ev));

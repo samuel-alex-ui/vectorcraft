@@ -1,6 +1,6 @@
 use super::artboards::names_an_artboard;
 use super::input::marquee_through;
-use super::outline::{KEY_OUTLINE, c32, node_outline, selection_hit_at, stroke_path, to_screen_path, too_many_anchors, walk_drawn};
+use super::outline::{KEY_OUTLINE, c32, node_outline, selection_hit_with_offset, stroke_path, to_screen_path, too_many_anchors, walk_drawn};
 use super::{Color32, CornerRadius, NodeKind, Overlay, Point, Pos2, Shape, Stroke, StrokeKind, Tokens, VectorcraftApp, Xf, vec2};
 
 pub(super) fn hover_highlight(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
@@ -13,14 +13,15 @@ pub(super) fn hover_highlight(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) 
         return;
     }
     let Some(st) = app.session.active() else { return };
-    let Some(hit) = selection_hit_at(app, h, xf.zoom) else { return };
+    let Some((hit, offset)) = selection_hit_with_offset(app, h, xf.zoom) else { return };
     let id = if app.session.tool_id() == "selection" { hit.top_object(st.isolation) } else { hit.leaf };
     if st.selection.contains(id) {
         return;
     }
     if let Some(n) = st.doc.node(id).filter(|n| !too_many_anchors([*n])) {
         let color = c32(st.doc.layer_color(id));
-        stroke_path(p, &node_outline(n, &st.doc.symbol_boxes()), xf, Stroke::new(1.5, color));
+        let shifted = Xf { center: Point::new(xf.center.x - offset, xf.center.y), ..*xf };
+        stroke_path(p, &node_outline(n, &st.doc.symbol_boxes()), &shifted, Stroke::new(1.5, color));
     }
 }
 

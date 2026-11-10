@@ -87,7 +87,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 | 05 | [Sichtbarkeitsfilter](aetherys-mode-filters.md) | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
 | 06 | [Editorzugriff & Küstenübergänge](aetherys-tasks/AETH-06.md) | Temporäre Bearbeitungsansicht, weiche Füllung und ein Küstenstrich für einfache Paare; PR #16 gemergt, sechs macOS-Funktionstests bestanden |
 | 07 | [LOD-Verknüpfung](aetherys-tasks/AETH-07.md) | Gemeinsame UUID setzen, lösen und Varianten nach Detailstufe finden; Geometrien unabhängig |
-| 08 | Kartennaht, Maße & Skalierung | Antimeridian/Pole, echte Entfernungen nach optionaler Radiuswahl |
+| 08 | [Kartennaht, Maße & Skalierung](aetherys-tasks/AETH-08.md) | PR #18 und #19 in main; Exportgrenzen und offene macOS-Nutzerabnahme dokumentiert |
 | 09 | Großkarten-Performance | Culling, Segment-Indizes, Tile-/Cache-Konzept mit belastbaren Benchmarks |
 | 10 | 3D-Vorschau | Nur lesender Globus auf denselben 2D-Geodaten |
 | 11 | Spätere Ausbaustufen | Modus-Stile, Historie, Chronica-Links, fortgeschrittene Editierhilfen |
