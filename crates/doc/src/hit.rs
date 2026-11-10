@@ -228,14 +228,19 @@ pub fn hit_test(doc: &Document, p: Point, opt: HitOptions) -> Option<Hit> {
     hit_test_skipping(doc, p, opt, &|_| false, true)
 }
 
-/// An invisible geographic detail layer (including ancestors) must not intercept a canvas
-/// selection. This is a view policy; the actual Node::visible flag stays unchanged.
-fn hidden_by_zoom(doc: &Document, id: NodeId, zoom: f64) -> bool {
-    doc.world_map.is_some()
-        && doc.ancestry(id).is_some_and(|ids| {
-            ids.into_iter().rev().filter_map(|id| doc.node(id)).find_map(|n| n.extras().zoom_fade).is_some_and(|fade| fade.opacity(zoom) <= 0.0)
-        })
-        && doc.node(id).is_some_and(|n| !n.has_zoom_fade_override())
+/// Map exclusions are inherited by every descendant. The nearest zoom rule still
+/// governs fades, including any explicit exception further down the tree.
+fn hidden_in_map_view(doc: &Document, id: NodeId, zoom: f64) -> bool {
+    let filter = doc.active_map_filter();
+    let Some(ancestry) = doc.ancestry(id) else { return false };
+    let mut fade = None;
+    for node in ancestry.into_iter().rev().filter_map(|id| doc.node(id)) {
+        if filter.is_some_and(|filter| filter.hides(node)) {
+            return true;
+        }
+        fade = fade.or(node.extras().zoom_fade);
+    }
+    fade.is_some_and(|fade| fade.opacity(zoom) <= 0.0) && doc.node(id).is_some_and(|n| !n.has_zoom_fade_override())
 }
 
 /// Select what the world-map canvas actually shows, ignoring fully faded detail layers.
@@ -244,14 +249,14 @@ pub fn hit_test_at_zoom(doc: &Document, p: Point, opt: HitOptions, zoom: f64) ->
     if doc.world_map.is_none() {
         return hit_test(doc, p, opt);
     }
-    hit_test_skipping(doc, p, opt, &|id| hidden_by_zoom(doc, id, zoom), true)
+    hit_test_skipping(doc, p, opt, &|id| hidden_in_map_view(doc, id, zoom), true)
 }
 
 /// Select Behind and marquee results also exclude visually absent geographic layers.
 pub fn objects_at_zoom(doc: &Document, p: Point, opt: HitOptions, scope: Option<NodeId>, zoom: f64) -> Vec<NodeId> {
     let mut ids = objects_at(doc, p, opt, scope);
     if doc.world_map.is_some() {
-        ids.retain(|id| !hidden_by_zoom(doc, *id, zoom));
+        ids.retain(|id| !hidden_in_map_view(doc, *id, zoom));
     }
     ids
 }
@@ -259,14 +264,14 @@ pub fn objects_at_zoom(doc: &Document, p: Point, opt: HitOptions, scope: Option<
 pub fn marquee_at_zoom(doc: &Document, r: Rect, scope: Option<NodeId>, leaves: bool, zoom: f64) -> Vec<NodeId> {
     let mut ids = marquee(doc, r, scope, leaves);
     if doc.world_map.is_some() {
-        ids.retain(|id| !hidden_by_zoom(doc, *id, zoom));
+        ids.retain(|id| !hidden_in_map_view(doc, *id, zoom));
     }
     ids
 }
 
 pub fn selected_hidden_at_zoom(doc: &Document, p: Point, opt: HitOptions, selected: &[NodeId], zoom: f64) -> Option<NodeId> {
     if doc.world_map.is_some() {
-        let visible: Vec<NodeId> = selected.iter().copied().filter(|id| !hidden_by_zoom(doc, *id, zoom)).collect();
+        let visible: Vec<NodeId> = selected.iter().copied().filter(|id| !hidden_in_map_view(doc, *id, zoom)).collect();
         selected_hidden_at(doc, p, opt, &visible)
     } else {
         selected_hidden_at(doc, p, opt, selected)

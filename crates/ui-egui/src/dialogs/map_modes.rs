@@ -46,6 +46,9 @@ pub(crate) fn bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
         if id != modes.active {
             let _ = app.run("map.mode.select", json!({"id": id}));
         }
+        if ui.button(tl!("Map Mode Filters")).clicked() {
+            let _ = app.run("ui.mapModeFilters", json!({}));
+        }
         if ui.button(tl!("Configure Map Modes")).clicked() {
             let _ = app.run("ui.mapModes", json!({}));
         }
@@ -102,5 +105,9 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
         .and_then(|id| u32::try_from(id).ok())
         .and_then(|id| modes.names.get(&id).filter(|name| action == "rename" && label(id, name) == draft))
         .map_or(draft.as_str(), String::as_str);
-    app.run("map.mode.edit", json!({"action": action, "id": id, "name": name}))
+    let result = app.run("map.mode.edit", json!({"action": action, "id": id, "name": name}));
+    if result.is_ok() {
+        app.ui.dialog = None;
+    }
+    result
 }

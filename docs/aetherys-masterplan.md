@@ -84,7 +84,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 | 02 | Beliebig viele Detailstufen ([Vertrag/Prüfbericht](aetherys-detail-levels.md), Nutzerverhalten bestätigt; Implementierung im Branch, Review offen) | Anlegen/Umbenennen/Löschen, Standard-Untergruppen, Persistenz und Migrationstests |
 | 03 | [Ererbte Zoom-Fade-Regeln](aetherys-zoom-fade.md#aeth-03--vererbung-und-ausnahmen) | Zoom-Start/Ende von Eltern mit optionalen Ausnahmen; vorhandenes Fade wiederverwenden |
 | 04 | [Kartenmodus-MVP](aetherys-map-modes.md) | Vordefinierte und benutzerdefinierte Modi; Speichern, Auswahl und UI |
-| 05 | Sichtbarkeits-Filter | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
+| 05 | [Sichtbarkeitsfilter](aetherys-mode-filters.md) | Gruppentypen/Eigenschaften pro Modus; alle Detailstufen, ohne Geometrieänderung |
 | 06 | Editorzugriff & Übergangstests | Unsichtbare Objekte erreichbar; Undo, Export, Fade-Überlappungen |
 | 07 | Objektidentität & nahtlose LOD | Zusammenhang feiner/grober Geometrie; keine Rückpropagation |
 | 08 | Kartennaht, Maße & Skalierung | Antimeridian/Pole, echte Entfernungen nach optionaler Radiuswahl |

@@ -373,6 +373,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "{} the Paragraph panel's Hyphenate checkbox: hyphenation off for the selected type's paragraphs (or those the Type tool's selection touches) when they all hyphenate, else on (text.setFormat {hyphenate}) → hyphenate",
     ),
     ("effect.last", "Last Effect…", "Cmd+Alt+Shift+E", "{} open the dialog of the last effect applied"),
+    ("ui.mapModeFilters", "Map Mode Filters", "", "{id?} open filters for a world-map mode (default: active mode)"),
     ("ui.mapModes", "Configure Map Modes", "", "{} open the world-map mode configuration dialog"),
     ("view.zoomIn", "Zoom In", "Cmd+=", "{}"),
     ("view.zoomOut", "Zoom Out", "Cmd+-", "{}"),

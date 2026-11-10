@@ -1932,3 +1932,11 @@ or hour estimate; no existing parity gap or milestone is closed.
 | Datum | Änderung |
 |---|---|
 | 2026-11-09 | AETH-04 ergänzt Modusverwaltung und persistente Auswahl. |
+
+## Aetherys AETH-05
+
+**Status:** Feature-Branch zur Review. Kartenmodusfilter ergänzen die Weltkartenansicht und speichern Regeln in der nativen Datei. [AETH-05 und Demonstration](aetherys-mode-filters.md).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-10 | Ausblendregeln für Gruppen, Kategorien, Tags und Eigenschaftswerte ergänzt. |

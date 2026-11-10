@@ -1,6 +1,6 @@
 # AETH-05: Modus-Sichtbarkeitsfilter
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Implementierung auf eigenem Branch. Review und macOS-Nutzerabnahme stehen aus.
 **Reihenfolge:** 05 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +20,16 @@ Pro Kartenmodus können Nutzer Gruppen und semantische Eigenschaften aktivieren/
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
+
+[Bedienung, Regeln und Demonstration](../aetherys-mode-filters.md).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-10 | Implementierung, macOS-Test und Pflicht-CI dokumentiert. |

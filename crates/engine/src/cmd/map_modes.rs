@@ -1,7 +1,7 @@
 //! Document-owned map mode catalogue and active choice.
 use super::{CommandSpec, Result, Session, bad, cmd};
 use serde_json::{Value, json};
-use vectorcraft_doc::geography::{MapModes, SCHEMA_VERSION};
+use vectorcraft_doc::geography::{MapFilter, MapFilterRule, MapModes, SCHEMA_VERSION};
 
 fn world(s: &Session) -> std::result::Result<(), String> {
     super::maskedit::outside_mask_editing(s)?;
@@ -15,6 +15,15 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(query "map.mode.list", "List Map Modes", [], None, "{} map mode catalogue and active ID → {active, modes: [{id, name}]}", world, list),
         cmd!("map.mode.select", "Select Map Mode", [], None, "{id} select a mode in the current world map", world, select),
+        cmd!(
+            "map.mode.setFilter",
+            "Set Map Mode Filter",
+            [],
+            None,
+            "{id, rules: [{kind: group, id}|{kind: category, id}|{kind: tag, tag}|{kind: property, key, value}]} replace the mode’s exclusion rules; [] clears them",
+            world,
+            set_filter
+        ),
         cmd!(
             "map.mode.edit",
             "Configure Map Modes",
@@ -33,7 +42,11 @@ fn modes(s: &Session) -> Result<MapModes> {
 
 fn list(s: &mut Session, _: &Value) -> Result<Value> {
     let modes = modes(s)?;
-    let rows: Vec<_> = modes.names.into_iter().map(|(id, name)| json!({"id": id, "name": name})).collect();
+    let rows: Vec<_> = modes
+        .names
+        .into_iter()
+        .map(|(id, name)| json!({"id": id, "name": name, "rules": modes.filters.get(&id).map_or_else(Vec::new, |f| f.0.iter().collect::<Vec<_>>())}))
+        .collect();
     Ok(json!({"active": modes.active, "modes": rows}))
 }
 
@@ -83,6 +96,9 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
             let id = modes.next_id;
             modes.next_id = id.checked_add(1).ok_or_else(|| bad(C, "no free mode ID"))?;
             modes.names.insert(id, name()?.into());
+            if let Some(filter) = target.and_then(|source| modes.filters.get(&source)).cloned() {
+                modes.filters.insert(id, filter);
+            }
             id
         }
         (Some("rename"), Some(id)) => {
@@ -95,6 +111,7 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
         }
         (Some("delete"), Some(id)) => {
             modes.names.remove(&id);
+            modes.filters.remove(&id);
             let first = modes.names.keys().next().copied().ok_or_else(|| bad(C, "keep at least one map mode"))?;
             if modes.active == id {
                 modes.active = first;
@@ -104,5 +121,27 @@ fn edit(s: &mut Session, p: &Value) -> Result<Value> {
         _ => return Err(bad(C, "unknown map mode action")),
     };
     save(s, "Configure Map Modes", modes, C)?;
+    Ok(json!({"id": id}))
+}
+
+fn set_filter(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.mode.setFilter";
+    let mut modes = modes(s)?;
+    let id = mode_id(p, &modes, C)?;
+    let rules = p.get("rules").ok_or_else(|| bad(C, "missing filter rules"))?;
+    let filter = <MapFilter as serde::Deserialize>::deserialize(rules).map_err(|e| bad(C, e.to_string()))?;
+    let doc = &s.doc()?.doc;
+    if filter.0.iter().any(|rule| matches!(rule, MapFilterRule::Group { id } if doc.node(*id).is_some_and(|node| !MapFilterRule::is_group(node)))) {
+        return Err(bad(C, "group rules require a layer or group ID"));
+    }
+    if modes.filters.get(&id).map_or(filter.0.is_empty(), |old| old == &filter) {
+        return Ok(json!({"id": id}));
+    }
+    if filter.0.is_empty() {
+        modes.filters.remove(&id);
+    } else {
+        modes.filters.insert(id, filter);
+    }
+    save(s, "Set Map Mode Filter", modes, C)?;
     Ok(json!({"id": id}))
 }

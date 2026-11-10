@@ -162,6 +162,122 @@ impl GeographicMetadata {
     }
 }
 
+/// One way to hide a row and its subtree in a map mode.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum MapFilterRule {
+    Group {
+        id: crate::NodeId,
+    },
+    Category {
+        #[serde(deserialize_with = "rule_text::<_, 64>")]
+        id: String,
+    },
+    Tag {
+        #[serde(deserialize_with = "rule_text::<_, 256>")]
+        tag: String,
+    },
+    Property {
+        #[serde(deserialize_with = "rule_text::<_, 128>")]
+        key: String,
+        #[serde(deserialize_with = "rule_text::<_, 4096>")]
+        value: String,
+    },
+}
+
+fn rule_text<'de, D: Deserializer<'de>, const N: usize>(d: D) -> Result<String, D::Error> {
+    Text::<N>.deserialize(d)
+}
+
+impl MapFilterRule {
+    pub fn is_group(node: &crate::Node) -> bool {
+        matches!(node.kind, crate::NodeKind::Layer { .. } | crate::NodeKind::Group { .. })
+    }
+
+    fn valid(&self) -> bool {
+        match self {
+            Self::Group { id } => id.0 != 0,
+            Self::Category { id } => BUILTIN_CATEGORIES.contains(&id.as_str()) || user_category(id),
+            Self::Tag { tag } => text(tag, 256),
+            Self::Property { key, value } => text(key, 128) && value.len() <= 4096,
+        }
+    }
+
+    fn matches(&self, node: &crate::Node) -> bool {
+        let geo = node.extras().geography.as_deref();
+        match self {
+            Self::Group { id } => node.id == *id && Self::is_group(node),
+            Self::Category { id } => geo.is_some_and(|g| g.categories.contains(id)),
+            Self::Tag { tag } => geo.is_some_and(|g| g.tags.contains(tag)),
+            Self::Property { key, value } => geo.and_then(|g| g.properties.get(key)) == Some(value),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct MapFilter(pub BTreeSet<MapFilterRule>);
+
+impl MapFilter {
+    pub const MAX_RULES: usize = 128;
+
+    pub fn hides(&self, node: &crate::Node) -> bool {
+        self.0.iter().any(|rule| rule.matches(node))
+    }
+
+    fn validate(&self) -> Result<(), &'static str> {
+        if self.0.len() > Self::MAX_RULES || self.0.iter().any(|rule| !rule.valid()) {
+            return Err("invalid map filter rules");
+        }
+        Ok(())
+    }
+}
+
+impl<'de> Deserialize<'de> for MapFilter {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Read;
+        impl<'de> Visitor<'de> for Read {
+            type Value = MapFilter;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("up to 128 distinct map filter rules")
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<MapFilter, A::Error> {
+                let mut rules = BTreeSet::new();
+                while let Some(rule) = seq.next_element()? {
+                    if rules.len() >= MapFilter::MAX_RULES || !rules.insert(rule) {
+                        return Err(A::Error::custom("too many or duplicate map filter rules"));
+                    }
+                }
+                let filter = MapFilter(rules);
+                filter.validate().map_err(A::Error::custom)?;
+                Ok(filter)
+            }
+        }
+        d.deserialize_seq(Read)
+    }
+}
+
+fn mode_filters<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<u32, MapFilter>, D::Error> {
+    struct Read;
+    impl<'de> Visitor<'de> for Read {
+        type Value = BTreeMap<u32, MapFilter>;
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("filters for up to 128 map modes")
+        }
+        fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+            let mut filters = BTreeMap::new();
+            while let Some(id) = map.next_key::<u32>()? {
+                if filters.len() >= 128 || filters.contains_key(&id) {
+                    return Err(A::Error::custom("too many or duplicate mode filters"));
+                }
+                filters.insert(id, map.next_value()?);
+            }
+            Ok(filters)
+        }
+    }
+    d.deserialize_map(Read)
+}
+
 /// Document-scoped presentation choices. Mode IDs do not refer to artwork or detail levels.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -170,6 +286,8 @@ pub struct MapModes {
     pub next_id: u32,
     #[serde(deserialize_with = "mode_names")]
     pub names: BTreeMap<u32, String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "mode_filters")]
+    pub filters: BTreeMap<u32, MapFilter>,
 }
 
 fn mode_names<'de, D: Deserializer<'de>>(d: D) -> Result<BTreeMap<u32, String>, D::Error> {
@@ -195,13 +313,19 @@ impl MapModes {
         {
             return Err("invalid map modes");
         }
+        for (id, filter) in &self.filters {
+            if !self.names.contains_key(id) {
+                return Err("map filter references an unknown mode");
+            }
+            filter.validate()?;
+        }
         Ok(())
     }
 }
 
 impl Default for MapModes {
     fn default() -> Self {
-        Self { active: 1, next_id: 7, names: (1..).zip(Self::STARTER_NAMES.map(str::to_owned)).collect() }
+        Self { active: 1, next_id: 7, names: (1..).zip(Self::STARTER_NAMES.map(str::to_owned)).collect(), filters: BTreeMap::new() }
     }
 }
 
@@ -240,6 +364,13 @@ impl MapSemantics {
 }
 
 impl crate::Document {
+    /// Empty rules and older maps use the ordinary visibility policy.
+    pub fn active_map_filter(&self) -> Option<&MapFilter> {
+        self.world_map?;
+        let modes = self.map_semantics.as_ref()?.modes.as_ref()?;
+        modes.filters.get(&modes.active).filter(|filter| !filter.0.is_empty())
+    }
+
     /// Validate the content-version guard and every stored geographic record, including library art.
     pub fn validate_geography(&self) -> Result<(), &'static str> {
         match (&self.map_semantics, self.world_map.and_then(|m| m.content_schema())) {
