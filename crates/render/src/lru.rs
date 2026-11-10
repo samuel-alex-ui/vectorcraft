@@ -191,7 +191,6 @@ impl<K: Hash + Eq + Clone, V, S: BuildHasher + Default> FrameCache<K, V, S> {
     }
 
     /// The bytes the entries hold (as estimated when they were kept).
-    #[cfg(test)]
     pub(crate) fn bytes(&self) -> usize {
         self.bytes
     }

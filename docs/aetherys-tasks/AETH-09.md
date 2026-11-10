@@ -1,6 +1,6 @@
 # AETH-09: Performance für Großkarten
 
-**Status:** Begonnen. Die Render-Baseline für den aktuellen Hauptbranch liegt zur Review vor.
+**Status:** Vorläufig abgeschlossen. Gruppenindex und schnellerer Cache-Aufbau sind in `main` (PR #21 und #22). Große Einzelpfade bleiben ein offener Optimierungspunkt.
 
 **Reihenfolge:** 09 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
@@ -79,3 +79,40 @@ der Bildvergleich nach einer Gruppenänderung bei gedrehter Kamera und die
 fünf Weltkarten-Renderregressionstests. Aufbaukosten und weitere reale
 Lastprofile wurden nicht gemessen. Einzelpfad-Segmentierung,
 Tile-Cache und Streaming sind weiterhin offen.
+
+## Nachmessung mit 100.000 Objekten und kaltem Cache
+
+PR #21 ist in `main` (Merge `b91689d01`). Der manuelle Benchmark oben
+verwendet ab diesem Folgeschritt 100.000 Rechtecke und einen gefüllten
+Küstenpfad mit 256.000 Stützpunkten. Kalt ist der Median aus drei ersten
+Frames mit jeweils neuem Renderer. Warm ist der Median aus neun Frames
+nach drei Aufwärmframes. Beide Modi laufen abwechselnd und die warmen
+Frames werden pixelweise verglichen.
+
+Die vollständige Sortierung an jedem inneren Baumknoten kostete bei
+100.000 Rechtecken isoliert 26,22–26,66 ms. Eine Medianpartition senkte
+das auf 13,39–13,58 ms (zwei Läufe, neun Messungen je Variante,
+optimiertes Profil). Der Baum braucht für die Partition keine vollständige
+Sortierung. Die Ausgabe sortiert die Kandidaten weiterhin in Zeichenreihenfolge.
+
+| Fall | Zoom | Warm ohne → mit Index | Kalt ohne → mit Index |
+|---|---:|---:|---:|
+| 100.000 Rechtecke | 4× | 7,50–7,79 → 4,06–4,26 ms | 47,72–49,30 → 62,34–62,81 ms |
+| 100.000 Rechtecke | 1.000.000× | 3,35–3,89 → 0,33–0,40 ms | 41,89–42,41 → 55,92–56,02 ms |
+| 256.000 Küstenstützpunkte | 4× | 8,82–8,99 → 8,63–8,97 ms | 16,65–17,82 → 16,14–16,32 ms |
+| 256.000 Küstenstützpunkte | 1.000.000× | 3,81–3,84 → 3,81–3,82 ms | 13,20–13,45 → 13,48–13,73 ms |
+
+Die Tabelle fasst zwei Durchläufe mit Medianpartition zusammen. Im
+vorherigen Durchlauf kostete der kalte Frame mit Index 81,17 ms bei 4×
+und 72,80 ms bei 1.000.000×. Die gepaarten Index-Zuschläge sanken damit
+von 30,39 / 28,25 ms auf rund 13–15 ms. Die absoluten Zeiten schwanken
+mit der Systemlast. Der Index hielt geschätzt 2.223.848 Byte (2,12 MiB)
+für die Rechtecke und 0 Byte für den Einzelpfad. Der maximale RSS des
+gesamten Benchmarks mit beiden Dokumenten und Renderpfaden betrug 428 MiB
+und enthält auch Fixtures, Geometrie und Pixmaps. Er ist kein Indexwert.
+
+Bildparität nach Gruppenänderung sowie mit Datumsgrenzen-Umbruch,
+Zoom-Fade und Modusfilter bestanden. Die fünf Renderregressionstests
+für Weltkarten blieben grün. Für den großen Einzelpfad wurde kein
+belastbarer Beschleunigungseffekt nachgewiesen. Segment-Culling und
+Streaming bleiben offen. Keine Kartendateien geändert.

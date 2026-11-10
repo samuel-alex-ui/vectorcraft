@@ -13,10 +13,10 @@ fn world_map_render_baseline() {
     let mut grid = Document::new(1000.0, 500.0);
     grid.world_map = Some(WorldMap::standard());
     let paint = Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0);
-    let mut paths = Vec::with_capacity(50_000);
-    for row in 0..200 {
-        for col in 0..250 {
-            let (x, y) = (f64::from(col) * 4.0, f64::from(row) * 2.5);
+    let mut paths = Vec::with_capacity(100_000);
+    for row in 0..250 {
+        for col in 0..400 {
+            let (x, y) = (f64::from(col) * 2.5, f64::from(row) * 2.0);
             let shape = shapes::rectangle(Rect::new(x, y, x + 1.5, y + 1.0));
             paths.push(Arc::new(Node::path(grid.alloc_id(), shape, paint.clone())));
         }
@@ -28,8 +28,8 @@ fn world_map_render_baseline() {
     let mut coast = Document::new(1000.0, 500.0);
     coast.world_map = grid.world_map;
     let mut path = BezPath::new();
-    for i in 0..32_000 {
-        let angle = f64::from(i) * std::f64::consts::TAU / 32_000.0;
+    for i in 0..256_000 {
+        let angle = f64::from(i) * std::f64::consts::TAU / 256_000.0;
         let radius = 100.0 + 2.0 * (angle * 197.0).sin();
         let p = Point::new(500.0 + radius * angle.cos(), 250.0 + radius * angle.sin());
         if i == 0 {
@@ -43,7 +43,7 @@ fn world_map_render_baseline() {
     let shape = Node::path(coast.alloc_id(), PathData::from_bezpath(&path), paint);
     coast.insert(Some(layer), 0, shape).unwrap();
 
-    for (label, doc, center) in [("50,000 paths", &grid, Point::new(500.0, 250.5)), ("32,000-vertex coastline", &coast, Point::new(600.0, 250.0))] {
+    for (label, doc, center) in [("100,000 paths", &grid, Point::new(500.0, 250.0)), ("256,000-vertex coastline", &coast, Point::new(600.0, 250.0))] {
         for zoom in [4.0, 1_000_000.0] {
             let options = [true, false].map(|disable_world_map_index| RenderOptions {
                 world_map_zoom: Some(zoom),
@@ -52,6 +52,16 @@ fn world_map_render_baseline() {
             });
             let mut renderers = [Renderer::new(), Renderer::new()];
             let mut samples = [Vec::new(), Vec::new()];
+            let mut cold = [Vec::new(), Vec::new()];
+            for run in 0..3 {
+                let view = Affine::translate((640.0, 360.0)) * Affine::scale(zoom) * Affine::translate(-center.to_vec2());
+                for index in if run % 2 == 0 { [0, 1] } else { [1, 0] } {
+                    let mut renderer = Renderer::new();
+                    let start = Instant::now();
+                    black_box(renderer.render(doc, 1280, 720, view, &options[index]));
+                    cold[index].push(start.elapsed().as_secs_f64() * 1000.0);
+                }
+            }
             for frame in 0..12 {
                 let pan = f64::from(frame % 3) * 24.0;
                 let view = Affine::translate((640.0 + pan, 360.0)) * Affine::scale(zoom) * Affine::translate(-center.to_vec2());
@@ -68,10 +78,17 @@ fn world_map_render_baseline() {
                 assert!(results[0].as_ref().unwrap().chunks_exact(4).any(|p| p[3] != 0));
                 assert!(results[0] == results[1], "pixels changed for {label} at {zoom}×, frame {frame}");
             }
-            for series in &mut samples {
+            for series in samples.iter_mut().chain(&mut cold) {
                 series.sort_by(f64::total_cmp);
             }
-            println!("{label}, {zoom}×: {:.2} → {:.2} ms median", samples[0][4], samples[1][4]);
+            println!(
+                "{label}, {zoom}×: warm {:.2} → {:.2} ms, cold {:.2} → {:.2} ms, index {} bytes",
+                samples[0][4],
+                samples[1][4],
+                cold[0][1],
+                cold[1][1],
+                renderers[1].world_map_index_bytes()
+            );
         }
     }
 }
@@ -84,7 +101,7 @@ fn indexed_group_matches_reference_after_an_edit() {
     let mut children = Vec::new();
     for x in 0..180 {
         let color = if x % 2 == 0 { Color::BLACK } else { Color::WHITE };
-        let left = f64::from(x) * 4.0;
+        let left = f64::from(x) * 4.0 - 4.0;
         let path = shapes::rectangle(Rect::new(left, 20.0, left + 9.0, 45.0));
         children.push(Arc::new(Node::path(doc.alloc_id(), path, Appearance::basic(Paint::solid(color), Paint::None, 0.0))));
     }
@@ -102,4 +119,21 @@ fn indexed_group_matches_reference_after_an_edit() {
         let b = reference.render(&doc, 160, 120, view, &linear);
         assert!(a.pixels == b.pixels);
     }
+
+    doc.world_map = doc.world_map.map(|map| map.with_longitude_wrap(true));
+    doc.node_mut(first).unwrap().visible = true;
+    doc.node_mut(layer).unwrap().extras_mut().zoom_fade = Some(vectorcraft_doc::ZoomFade::new(Some([2.0, 6.0]), None).unwrap());
+    let wrapped = Affine::translate((-1940.0, 0.0)) * Affine::scale(2.0);
+    let a = indexed.render(&doc, 160, 120, wrapped, &opts);
+    let b = reference.render(&doc, 160, 120, wrapped, &linear);
+    assert!(a.pixels == b.pixels);
+    assert!((1..255).contains(&a.pixel(56, 60)[3]));
+    use vectorcraft_doc::geography::{MapFilter, MapFilterRule, MapModes};
+    let mut modes = MapModes::default();
+    modes.filters.insert(modes.active, MapFilter([MapFilterRule::Group { id: layer }].into_iter().collect()));
+    doc.map_semantics = Some(vectorcraft_doc::MapSemantics { modes: Some(modes), ..Default::default() });
+    let a = indexed.render(&doc, 160, 120, wrapped, &opts);
+    let b = reference.render(&doc, 160, 120, wrapped, &linear);
+    assert!(a.pixels == b.pixels);
+    assert_eq!(a.pixel(56, 60)[3], 0);
 }

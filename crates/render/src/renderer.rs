@@ -25,6 +25,11 @@ mod paint;
 mod text;
 
 impl Renderer {
+    /// Estimated retained bytes of the world-map index, excluding document geometry.
+    pub fn world_map_index_bytes(&self) -> usize {
+        self.spatial.bytes()
+    }
+
     pub fn new() -> Self {
         Self {
             texts: FrameCache::new(lru::TEXT_BUDGET, 1024),
