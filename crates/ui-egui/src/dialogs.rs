@@ -59,6 +59,7 @@ pub mod liquify;
 pub mod live_paint_bucket;
 pub mod live_paint_gaps;
 pub mod live_paint_selection;
+pub mod map_modes;
 pub mod missing_fonts;
 pub mod missing_links;
 pub(crate) mod modal;
@@ -401,6 +402,7 @@ registry! {
     EditViews: [edit_views::KIND] => edit_views::SPEC,
     PerspectivePlane: [perspective_plane::KIND] => perspective_plane::SPEC,
     LayerOptions: [layer_options::KIND] => layer_options::SPEC,
+    MapModes: [map_modes::KIND] => map_modes::SPEC,
     LayersPanelOptions: [layers_panel_options::KIND] => layers_panel_options::SPEC,
     PathfinderOptions: [pathfinder_options::KIND] => pathfinder_options::SPEC,
     RearrangeArtboards: [rearrange_artboards::KIND] => rearrange_artboards::SPEC,

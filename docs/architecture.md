@@ -134,3 +134,11 @@ or hour estimate; no existing parity gap or milestone is closed.
 | Datum | Änderung |
 |---|---|
 | 2026-11-09 | AETH-03 übernimmt PR #5 und ergänzt Zoom-Fade-Vererbung. |
+
+## Aetherys AETH-04
+
+**Status:** Feature-Branch zur Review. Die Weltkarten-Semantik verwaltet einen Moduskatalog mit stabilen IDs und aktiver Auswahl. [Vertrag und Demonstration](aetherys-map-modes.md).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | AETH-04 ergänzt Modusverwaltung und persistente Auswahl. |

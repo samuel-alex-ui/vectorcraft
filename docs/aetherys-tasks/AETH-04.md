@@ -1,6 +1,6 @@
 # AETH-04: Kartenmodi-Grundlage
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Implementierung auf eigenem Branch. Review und macOS-Nutzerabnahme stehen aus.
 **Reihenfolge:** 04 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +20,16 @@ Implementiere persistent konfigurierbare Kartenmodi (Geografisch, Biome, Politis
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
-- [ ] Offene Designfragen entschieden
-- [ ] Umsetzung isoliert und rückwärtskompatibel
-- [ ] Tests und Format-/Build-Prüfungen dokumentiert
-- [ ] PR mit Demonstration oder Beispieldatei
+- [x] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Offene Designfragen entschieden
+- [x] Umsetzung isoliert und rückwärtskompatibel
+- [x] Tests und Format-/Build-Prüfungen dokumentiert
+- [x] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
-- [ ] Masterplan/Status aktualisiert
+- [x] Masterplan/Status aktualisiert
+
+[Modusleiste, Dateiformat und Demonstration](../aetherys-map-modes.md).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-10 | Vollständige CI und macOS-Prüfung dokumentiert. |

@@ -630,3 +630,11 @@ estimate is reassessed; no full workspace CI is claimed for this phase.
 | Datum | Änderung |
 |---|---|
 | 2026-11-09 | AETH-03 übernimmt PR #5 und ergänzt Zoom-Fade-Vererbung. |
+
+## Aetherys AETH-04
+
+**Status:** Feature-Branch zur Review. Weltkarten zeigen eine Modusleiste und einen Konfigurationsdialog oberhalb der Zeichenfläche. [Vertrag und Demonstration](aetherys-map-modes.md).
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-09 | AETH-04 ergänzt Modusverwaltung und persistente Auswahl. |
