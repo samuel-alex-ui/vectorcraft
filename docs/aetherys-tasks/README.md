@@ -1,6 +1,6 @@
 # Aetherys – Codex-Aufträge
 
-**Stand:** 2026-11-10 · **Status:** AETH-01 bis AETH-05 in `main`, AETH-06 zur Review.
+**Stand:** 2026-11-10 · **Status:** AETH-01 bis AETH-06 in `main`; AETH-06 auf macOS abgenommen.
 
 [Masterplan](../aetherys-masterplan.md) · [Älterer Projektleitfaden](../aetherys-project-guide.md)
 
@@ -12,8 +12,8 @@
 - [ ] [AETH-03 – Zoom-Fade-Vererbung](AETH-03.md)
 - [ ] [AETH-04 – Kartenmodus-Oberfläche](AETH-04.md)
 - [ ] [AETH-05 – Kartenmodus-Filter](AETH-05.md)
-- [ ] [AETH-06 – Bearbeitung und Übergänge](AETH-06.md) – implementiert, Review und Nutzerabnahme offen
-- [ ] [AETH-07 – LOD-Zusammenhang](AETH-07.md)
+- [x] [AETH-06 – Bearbeitung und Übergänge](AETH-06.md) – PR #16 gemergt, alle sechs macOS-Funktionstests bestanden
+- [ ] [AETH-07 – LOD-Zusammenhang](AETH-07.md) – implementiert, Review und Nutzerabnahme offen
 - [ ] [AETH-08 – Weltnaht, Pole, Maßstab](AETH-08.md)
 - [ ] [AETH-09 – Performance großer Karten](AETH-09.md)
 - [ ] [AETH-10 – 3D-Globusvorschau](AETH-10.md)

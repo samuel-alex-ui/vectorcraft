@@ -1,6 +1,6 @@
 # AETH-06: Editiermodus und Render-Übergänge
 
-**Status:** Implementiert auf eigenem Branch. Review und macOS-Nutzerabnahme offen.
+**Status:** Abgeschlossen. PR #16 ist in `main`; der Nutzer hat alle sechs macOS-Funktionstests erfolgreich durchgeführt.
 
 **Reihenfolge:** 06 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
@@ -26,7 +26,7 @@ Entwerfe und implementiere expliziten Zugang zu im Modus verborgenen Objekten, o
 - [x] Umsetzung isoliert und rückwärtskompatibel
 - [x] Tests und Format-/Build-Prüfungen dokumentiert
 - [x] PR mit reproduzierbarem synthetischem Beispiel
-- [ ] Nutzerprüfung auf macOS abgeschlossen
+- [x] Nutzerprüfung auf macOS abgeschlossen
 - [x] Masterplan/Status aktualisiert
 
 
