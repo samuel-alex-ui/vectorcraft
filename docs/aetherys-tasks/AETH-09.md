@@ -1,6 +1,6 @@
 # AETH-09: Performance für Großkarten
 
-**Status:** Begonnen. Die Render-Baseline für den aktuellen Hauptbranch liegt zur Review vor.
+**Status:** Vorläufig abgeschlossen. Gruppenindex und schnellerer Cache-Aufbau sind in `main` (PR #21 und #22). Große Einzelpfade bleiben ein offener Optimierungspunkt.
 
 **Reihenfolge:** 09 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)

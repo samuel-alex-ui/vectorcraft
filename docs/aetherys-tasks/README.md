@@ -15,7 +15,7 @@
 - [x] [AETH-06 – Bearbeitung und Übergänge](AETH-06.md) – PR #16 gemergt, alle sechs macOS-Funktionstests bestanden
 - [ ] [AETH-07 – LOD-Zusammenhang](AETH-07.md) – implementiert, Review und Nutzerabnahme offen
 - [x] [AETH-08 – Weltnaht, Pole, Maßstab](AETH-08.md) – PR #18 und #19 gemergt, macOS-Nutzerabnahme offen
-- [ ] [AETH-09 – Performance großer Karten](AETH-09.md)
+- [x] [AETH-09 – Performance großer Karten](AETH-09.md) – vorläufig abgeschlossen; große Einzelpfade offen
 - [ ] [AETH-10 – 3D-Globusvorschau](AETH-10.md)
 - [ ] [AETH-11 – Spätere Erweiterungen](AETH-11.md)
 
