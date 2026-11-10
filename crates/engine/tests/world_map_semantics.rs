@@ -179,3 +179,36 @@ fn entity_commands_preserve_metadata_and_find_variants_across_levels() {
     assert!(normal.execute("map.setEntity", &json!({"id":1,"entity":ENTITY})).is_err());
     assert!(normal.execute("map.entityRepresentations", &json!({"entity":ENTITY})).is_err());
 }
+
+#[test]
+fn radius_and_measurement_use_geographic_coordinates_and_preserve_map_content() {
+    let mut s = world();
+    let level = exec(&mut s, "map.detailLevel.create", json!({}))["id"].clone();
+    exec(&mut s, "layer.setProps", json!({"id":level,"zoomFade":{"fade_in":[2,4]}}));
+    let before = s.doc().unwrap().doc.clone();
+    let crossing = json!({"from":[179,0],"to":[-179,0]});
+    assert!(s.execute("map.measure", &crossing).is_err());
+    assert!(s.execute("map.setRadius", &json!({"radiusM":0})).is_err());
+    exec(&mut s, "map.setRadius", json!({"radiusM":1000.0}));
+    let metres = |v: &serde_json::Value| v["distanceM"].as_f64().unwrap();
+    assert!((metres(&exec(&mut s, "map.measure", crossing)) - 1000.0 * 2.0_f64.to_radians()).abs() < 1e-9);
+    let pole = exec(&mut s, "map.measure", json!({"from":[179,90],"to":[-179,90]}));
+    assert_eq!(metres(&pole), 0.0);
+    assert_eq!(pole["metresPerPoint"]["horizontal"], 0.0);
+    let antipodes = exec(&mut s, "map.measure", json!({"from":[0,90],"to":[0,-90]}));
+    assert!((metres(&antipodes) - 1000.0 * std::f64::consts::PI).abs() < 1e-9);
+    assert!(s.execute("map.measure", &json!({"from":[0,91],"to":[0,0]})).is_err());
+    let scaled = s.doc().unwrap().doc.clone();
+    assert_eq!(scaled.layers, before.layers);
+    assert_eq!(scaled.map_semantics, before.map_semantics);
+    let bytes = vectorcraft_format::save_with(&scaled, &Default::default()).unwrap();
+    assert_eq!(vectorcraft_format::load(&bytes).unwrap().world_map, scaled.world_map);
+    exec(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc().unwrap().doc, before);
+    exec(&mut s, "edit.redo", json!({}));
+    assert_eq!(s.doc().unwrap().doc, scaled);
+    exec(&mut s, "map.setRadius", json!({"radiusM":null}));
+    assert_eq!(s.doc().unwrap().doc, before);
+    let mut ordinary = vectorcraft_testkit::fixtures::session();
+    assert!(ordinary.execute("map.setRadius", &json!({"radiusM":1000})).is_err());
+}

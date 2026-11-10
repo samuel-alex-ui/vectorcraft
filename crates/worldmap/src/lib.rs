@@ -32,6 +32,8 @@ pub enum MapError {
     InvalidLatitude,
     OutsideCanvas,
     InvalidRadius,
+    MissingRadius,
+    MeasurementOutOfRange,
     UnsupportedContentSchema,
 }
 
@@ -79,6 +81,32 @@ impl WorldMap {
         Ok(self)
     }
 
+    pub fn without_planet_radius(mut self) -> Self {
+        self.planet_radius_m = None;
+        self
+    }
+
+    /// Shortest spherical surface distance in metres, including across the antimeridian.
+    pub fn distance_m(&self, from: GeographicPoint, to: GeographicPoint) -> Result<f64, MapError> {
+        self.project(from)?;
+        self.project(to)?;
+        let radius = self.planet_radius_m.ok_or(MapError::MissingRadius)?;
+        let longitude_delta = ((to.longitude_deg - from.longitude_deg + 180.0).rem_euclid(360.0) - 180.0).to_radians();
+        let latitude_delta = (to.latitude_deg - from.latitude_deg).to_radians();
+        let hav = (latitude_delta * 0.5).sin().powi(2)
+            + latitude_cos(from.latitude_deg) * latitude_cos(to.latitude_deg) * (longitude_delta * 0.5).sin().powi(2);
+        let hav = hav.clamp(0.0, 1.0);
+        finite_measurement(radius * (2.0 * hav.sqrt().atan2((1.0 - hav).sqrt())))
+    }
+
+    /// Local horizontal and vertical surface metres per document point.
+    pub fn local_scale(&self, latitude_deg: f64) -> Result<(f64, f64), MapError> {
+        self.project(GeographicPoint { longitude_deg: 0.0, latitude_deg })?;
+        let radius = self.planet_radius_m.ok_or(MapError::MissingRadius)?;
+        let vertical = finite_measurement(radius * (std::f64::consts::PI / self.height))?;
+        Ok((vertical * latitude_cos(latitude_deg), vertical))
+    }
+
     /// Required semantic content version. Older readers reject this field instead of losing data.
     pub fn content_schema(&self) -> Option<u32> {
         self.content_schema
@@ -115,6 +143,14 @@ impl WorldMap {
         }
         Ok(GeographicPoint { longitude_deg: p.x / self.width * 360.0 - 180.0, latitude_deg: 90.0 - p.y / self.height * 180.0 })
     }
+}
+
+fn latitude_cos(latitude_deg: f64) -> f64 {
+    if latitude_deg.abs() == 90.0 { 0.0 } else { latitude_deg.to_radians().cos() }
+}
+
+fn finite_measurement(value: f64) -> Result<f64, MapError> {
+    if value.is_finite() { Ok(value) } else { Err(MapError::MeasurementOutOfRange) }
 }
 
 #[cfg(test)]

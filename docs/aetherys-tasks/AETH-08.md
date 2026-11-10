@@ -1,6 +1,7 @@
 # AETH-08: Naht, Pole und Maße
 
-**Status:** Geplant – noch nicht an Codex übergeben.  
+**Status:** Teil 1 (Radius und Messung) umgesetzt. Naht- und Polgeometrie in Abstimmung.
+
 **Reihenfolge:** 08 / 11  
 **Referenz:** [Masterplan](../aetherys-masterplan.md)
 
@@ -20,10 +21,28 @@
 
 ## Abschluss-Checkliste
 
-- [ ] Ist-Zustand und Abhängigkeiten geprüft
+- [x] Ist-Zustand und Abhängigkeiten geprüft
 - [ ] Offene Designfragen entschieden
 - [ ] Umsetzung isoliert und rückwärtskompatibel
 - [ ] Tests und Format-/Build-Prüfungen dokumentiert
 - [ ] PR mit Demonstration oder Beispieldatei
 - [ ] Nutzerprüfung auf macOS abgeschlossen
 - [ ] Masterplan/Status aktualisiert
+
+## Teil 1 – Radius und Messung
+
+`map.setRadius {"radiusM":1000}` setzt den optionalen Kugelradius in Metern
+mit Undo/Redo. `{"radiusM":null}` entfernt ihn. Das vorhandene Dateifeld
+bleibt unverändert, ältere Karten brauchen keine Migration.
+
+`map.measure {"from":[179,0],"to":[-179,0]}` nimmt
+`[Längengrad, Breitengrad]` in Grad entgegen. Bei 1000 m Radius ergibt
+die kürzere Strecke über die Datumsgrenze rund 34,91 m. Die Antwort enthält
+Meter, Kilometer und den lokalen horizontalen und vertikalen Maßstab in
+Metern pro Dokumentpunkt am Start. Der horizontale Maßstab fällt am Pol
+auf null. Ohne Radius ist die Messung nicht verfügbar. Das Modell verwendet
+eine Kugel. Kamera, Layer, Zoom-Fades und gespeicherte Geometrien bleiben
+von der Messung und vom Setzen des Radius unberührt.
+
+Dieser Teil ändert keine Darstellung oder Bearbeitung von Nahtgeometrien.
+Die explizite Naht- und Polregel wird getrennt abgestimmt.
