@@ -371,3 +371,11 @@ or hour estimate; no existing parity gap or milestone is closed.
 | Datum | Änderung |
 |---|---|
 | 2026-11-10 | Ausblendregeln für Gruppen, Kategorien, Tags und Eigenschaftswerte ergänzt. |
+
+## Aetherys AETH-06
+
+**Status:** Feature-Branch zur Review. [Bedienung, Beispiel und Grenzen](aetherys-tasks/AETH-06.md). Paritätswerte und Aufwandsschätzung bleiben gleich.
+
+| Datum | Änderung |
+|---|---|
+| 2026-11-10 | Temporäre Bearbeitungsansicht und Übergang für einfache Küstenpaare ergänzt. |

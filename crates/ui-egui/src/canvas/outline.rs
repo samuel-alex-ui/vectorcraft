@@ -161,7 +161,7 @@ pub(super) fn walk_drawn<'a>(n: &'a Node, f: &mut impl FnMut(&'a Node)) {
 /// The topmost editable object under document point `p` at `zoom`, as what is drawn there
 /// ([`hit_with`]): a swatch or a symbol dropped on art.
 pub(super) fn hit_at(app: &VectorcraftApp, p: Point, zoom: f64) -> Option<vectorcraft_doc::hit::Hit> {
-    hit_with(app, p, zoom, vectorcraft_doc::hit::hit_test)
+    hit_with(app, p, zoom, |doc, p, opt| hit_map_view(app, doc, p, opt, zoom))
 }
 
 /// The topmost editable object under document point `p` at `zoom`, as the selection tools pick
@@ -169,7 +169,21 @@ pub(super) fn hit_at(app: &VectorcraftApp, p: Point, zoom: f64) -> Option<vector
 /// ([`vectorcraft_doc::hit::HitOptions::clip_outlines`]). Object Highlighting and a right-click's
 /// selection show and take what a click of those tools would.
 pub(super) fn selection_hit_at(app: &VectorcraftApp, p: Point, zoom: f64) -> Option<vectorcraft_doc::hit::Hit> {
-    hit_with(app, p, zoom, |doc, p, opt| vectorcraft_doc::hit::hit_test(doc, p, vectorcraft_doc::hit::HitOptions { clip_outlines: true, ..opt }))
+    hit_with(app, p, zoom, |doc, p, opt| hit_map_view(app, doc, p, vectorcraft_doc::hit::HitOptions { clip_outlines: true, ..opt }, zoom))
+}
+
+fn hit_map_view(
+    app: &VectorcraftApp,
+    doc: &vectorcraft_doc::Document,
+    p: Point,
+    opt: vectorcraft_doc::hit::HitOptions,
+    zoom: f64,
+) -> Option<vectorcraft_doc::hit::Hit> {
+    if app.view().is_some_and(|view| view.edit_hidden_map_art) {
+        vectorcraft_doc::hit::hit_test(doc, p, opt)
+    } else {
+        vectorcraft_doc::hit::hit_test_at_zoom(doc, p, opt, zoom)
+    }
 }
 
 /// `test` on the active document at document point `p`, with the options the selection tools hit

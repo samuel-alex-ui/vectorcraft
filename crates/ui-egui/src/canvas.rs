@@ -501,6 +501,7 @@ fn cache_key(
         doc: st.uid as usize,
         revision: st.revision,
         interacting: st.interaction.is_some(),
+        edit_hidden_map_art: v.edit_hidden_map_art,
         zoom: v.zoom,
         cx: v.center.x,
         cy: v.center.y,
@@ -581,7 +582,7 @@ fn frame_options(
 ) -> vectorcraft_render::RenderOptions {
     let opts = vectorcraft_render::RenderOptions { outline: app.outline_view(), background: None, artboards: false, ..Default::default() };
     vectorcraft_render::RenderOptions {
-        world_map_zoom: app.view().filter(|v| v.world_map).map(|v| v.zoom),
+        world_map_zoom: app.view().filter(|v| v.world_map && !key.edit_hidden_map_art).map(|v| v.zoom),
         proof: vectorcraft_render::proof::active_proof(),
         overprint_preview: vectorcraft_render::proof::overprint_preview_on(),
         trim: app.ui.view.trim_view,

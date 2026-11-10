@@ -49,6 +49,25 @@ pub(super) fn changed_pixels(
     if opts.mask_view.is_some() {
         return None;
     }
+    // Changing one layer can enable or disable the paired coastline pass for both.
+    if let Some(zoom) = opts.world_map_zoom
+        && [shown.as_ref(), doc].into_iter().any(|doc| {
+            doc.layers
+                .iter()
+                .filter(|layer| {
+                    layer.extras().detail_level
+                        && layer.extras().zoom_fade.is_some_and(|fade| {
+                            let weight = fade.opacity(zoom);
+                            weight > 0.0 && weight < 1.0
+                        })
+                })
+                .take(2)
+                .count()
+                == 2
+        })
+    {
+        return None;
+    }
     let shown_key = app.canvas.key.as_ref()?;
     let same_view = *shown_key == CacheKey { revision: shown_key.revision, placed: shown_key.placed, ..key.clone() };
     if !same_view || app.canvas.texture.is_none() || app.canvas.from_worker || app.canvas.worker.as_ref().is_some_and(|w| w.pending.is_some()) {

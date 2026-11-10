@@ -18,6 +18,7 @@ use super::{
     group, ink, kurbo, live, lru, peniko, proof, vello_cpu,
 };
 
+mod coast;
 mod images;
 mod nodes;
 mod paint;
@@ -264,7 +265,11 @@ impl Renderer {
         let knockout = page_group && doc.page_knockout;
         let mut draw = |r: &mut Self, c: &mut RenderContext, fr: &Frame| {
             r.knockout = knockout;
-            r.draw_children(c, fr, &layers, knockout);
+            if !page_group && fr.doc.world_map.is_some() && fr.opts.world_map_zoom.is_some() && !fr.opts.outline && fr.opts.isolated.is_none() {
+                r.draw_map_layers(c, fr, &layers);
+            } else {
+                r.draw_children(c, fr, &layers, knockout);
+            }
             r.knockout = false;
         };
         if page_group {

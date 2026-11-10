@@ -80,6 +80,7 @@ pub struct CacheKey {
     pub interacting: bool,
     /// A tool's drag on the canvas is in progress ([`vectorcraft_render::RenderOptions::dragging`]).
     pub dragging: bool,
+    pub edit_hidden_map_art: bool,
     pub zoom: f64,
     pub cx: f64,
     pub cy: f64,

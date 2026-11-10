@@ -81,3 +81,51 @@ fn complementary_detail_levels_overlap_in_layer_order() {
     assert!(r.abs_diff(128) <= 2 && g.abs_diff(64) <= 2 && b.abs_diff(192) <= 2 && a == 255, "{r}, {g}, {b}, {a}");
     assert_eq!(picture(&doc, Some(500.0)), [0, 0, 255, 255]);
 }
+
+#[test]
+fn paired_coast_fills_preserve_coverage_and_use_one_outline() {
+    use vectorcraft_doc::GeographicMetadata;
+
+    let mut doc = Document::new(100.0, 100.0);
+    doc.world_map = Some(WorldMap::standard());
+    for (left, color, fade) in [
+        (20.0, Color::rgb(1.0, 0.0, 0.0), ZoomFade::new(None, Some([2.0, 4.0])).unwrap()),
+        (30.0, Color::rgb(0.0, 0.0, 1.0), ZoomFade::new(Some([2.0, 4.0]), None).unwrap()),
+    ] {
+        let mut level = Node::layer(doc.alloc_id(), "Coast", vectorcraft_doc::LayerColor::Preset(0));
+        level.extras_mut().detail_level = true;
+        level.extras_mut().zoom_fade = Some(fade);
+        let id = level.id;
+        doc.insert(None, usize::MAX, level).unwrap();
+        let mut coast = Node::path(
+            doc.alloc_id(),
+            shapes::rectangle(Rect::new(left, 20.0, 80.0, 80.0)),
+            Appearance::basic(Paint::solid(color), Paint::solid(Color::BLACK), 2.0),
+        );
+        coast.extras_mut().geography = Some(Box::new(GeographicMetadata { categories: vec!["core:coastline".into()], ..Default::default() }));
+        doc.insert(Some(id), 0, coast).unwrap();
+    }
+    let render = |doc: &Document, zoom| {
+        let opts = RenderOptions { world_map_zoom: zoom, ..Default::default() };
+        Renderer::new().render(doc, 100, 100, Affine::IDENTITY, &opts)
+    };
+    let midpoint = render(&doc, Some(3.0));
+    let [r, g, b, a] = midpoint.pixel(50, 50);
+    assert!(r.abs_diff(128) <= 1 && b.abs_diff(128) <= 1 && g == 0 && a == 255, "{r}, {g}, {b}, {a}");
+    assert!(midpoint.pixel(20, 50)[0] > 100, "the coarse outline is absent");
+    assert_eq!(midpoint.pixel(30, 50), [0, 0, 0, 255], "the fine outline is drawn once");
+    assert!(midpoint.pixel(25, 50)[3].abs_diff(128) <= 1, "the differing silhouette fades");
+    let before = render(&doc, Some(2.5));
+    assert_eq!(before.pixel(20, 50), [0, 0, 0, 255]);
+    assert_ne!(before.pixel(30, 50), [0, 0, 0, 255]);
+    assert_eq!(render(&doc, Some(2.0)).pixel(50, 50), [255, 0, 0, 255]);
+    assert_eq!(render(&doc, Some(4.0)).pixel(50, 50), [0, 0, 255, 255]);
+    let exported = Renderer::new().render_region(&doc, Rect::new(0.0, 0.0, 100.0, 100.0), 1.0, false);
+    assert_eq!(exported.pixel(20, 50), [0, 0, 0, 255]);
+    assert_eq!(exported.pixel(30, 50), [0, 0, 0, 255]);
+    let level = doc.layers.last().unwrap().id;
+    doc.node_mut(level).unwrap().extras_mut().detail_level = false;
+    assert!(render(&doc, Some(3.0)).pixel(50, 50)[3].abs_diff(192) <= 1, "unmarked layers keep the ordinary fade");
+    doc.world_map = None;
+    assert_eq!(render(&doc, Some(3.0)).pixels, render(&doc, None).pixels);
+}

@@ -52,7 +52,17 @@ pub(crate) fn bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
         if ui.button(tl!("Configure Map Modes")).clicked() {
             let _ = app.run("ui.mapModes", json!({}));
         }
+        let editing = app.view().is_some_and(|v| v.edit_hidden_map_art);
+        if ui.selectable_label(editing, tl!("Edit Hidden Map Art")).clicked() {
+            let _ = app.run("ui.editHiddenMapArt", json!({}));
+        }
     });
+}
+
+pub fn toggle_edit_hidden(app: &mut VectorcraftApp) -> Result<Value, String> {
+    let view = app.view_mut().filter(|v| v.world_map).ok_or("Requires a world-map document")?;
+    view.edit_hidden_map_art = !view.edit_hidden_map_art;
+    Ok(json!(view.edit_hidden_map_art))
 }
 
 pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
@@ -110,4 +120,66 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
         app.ui.dialog = None;
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vectorcraft_engine::{
+        Session,
+        tools::{PointerEvent, PointerKind},
+    };
+
+    #[test]
+    fn temporary_map_editing_respects_layer_locks_and_keeps_saved_rules() {
+        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let run = |app: &mut VectorcraftApp, id, params| app.run(id, params).unwrap();
+        run(&mut app, "file.new", json!({}));
+        assert!(app.run("ui.editHiddenMapArt", json!({})).is_err());
+        run(&mut app, "file.newWorldMap", json!({}));
+        let layer = run(&mut app, "map.detailLevel.create", json!({}))["id"].clone();
+        run(&mut app, "layer.setCurrent", json!({"id":layer}));
+        let id = run(&mut app, "shape.rectangle", json!({"x":10,"y":10,"width":20,"height":20}))["id"].clone();
+        run(&mut app, "paint.setFill", json!({"id":id,"color":"#ff0000"}));
+        run(&mut app, "map.setGeography", json!({"id":id,"geography":{"categories":["core:river"]}}));
+        run(&mut app, "map.mode.setFilter", json!({"id":1,"rules":[{"kind":"category","id":"core:river"}]}));
+        run(&mut app, "layer.setProps", json!({"id":layer,"zoomFade":{"fade_in":[2,4]}}));
+        app.view_mut().unwrap().zoom = 1.0;
+        let click = |app: &mut VectorcraftApp| {
+            run(app, "select.none", json!({}));
+            let view = app.view_info();
+            for kind in [PointerKind::Down, PointerKind::Up] {
+                app.session.pointer(&PointerEvent::new(kind, 20.0, 20.0), view).unwrap();
+            }
+            !app.session.active().unwrap().selection.objects.is_empty()
+        };
+        assert!(!click(&mut app));
+        let before = app.session.active().unwrap().doc.clone();
+        assert_eq!(run(&mut app, "ui.editHiddenMapArt", json!({})), json!(true));
+        assert!(click(&mut app));
+        assert_eq!(app.session.active().unwrap().doc, before);
+        run(&mut app, "object.move", json!({"dx":40,"dy":0}));
+        let moved = app.session.active().unwrap().doc.clone();
+        assert_ne!(moved, before);
+        run(&mut app, "edit.undo", json!({}));
+        assert_eq!(app.session.active().unwrap().doc, before);
+        run(&mut app, "edit.redo", json!({}));
+        assert_eq!(app.session.active().unwrap().doc, moved);
+        run(&mut app, "edit.undo", json!({}));
+
+        run(&mut app, "layer.setProps", json!({"id":layer,"locked":true}));
+        assert!(!click(&mut app));
+        run(&mut app, "layer.setProps", json!({"id":layer,"locked":false,"visible":false}));
+        assert!(!click(&mut app));
+        run(&mut app, "layer.setProps", json!({"id":layer,"visible":true}));
+        assert!(click(&mut app));
+        assert_eq!(run(&mut app, "ui.editHiddenMapArt", json!({})), json!(false));
+        assert!(!click(&mut app));
+
+        let saved = vectorcraft_format::save_with(&before, &Default::default()).unwrap();
+        let loaded = vectorcraft_format::load(&saved).unwrap();
+        assert_eq!(loaded.map_semantics, before.map_semantics);
+        assert_eq!(loaded.layers, before.layers);
+        assert!(!crate::state::View::of(app.session.active().unwrap()).edit_hidden_map_art);
+    }
 }

@@ -96,6 +96,7 @@ impl VectorcraftApp {
     pub fn view_info(&self) -> ViewInfo {
         ViewInfo {
             zoom: self.view().map(|v| v.zoom).unwrap_or(1.0),
+            edit_hidden_map_art: self.view().is_some_and(|v| v.world_map && v.edit_hidden_map_art),
             outline: self.outline_view(),
             smart_guides: self.ui.view.smart_guides,
             guides: self.ui.view.guides,

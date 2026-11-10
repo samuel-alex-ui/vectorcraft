@@ -120,6 +120,7 @@ pub struct ToolContext<'a> {
     pub selection: &'a Selection,
     /// Screen pixels per document point.
     pub zoom: f64,
+    pub edit_hidden_map_art: bool,
     pub isolation: Option<NodeId>,
     pub paint: &'a PaintDefaults,
     pub outline: bool,
@@ -265,19 +266,35 @@ impl ToolContext<'_> {
     /// Canvas selection follows zoom-faded geographic layers without changing their stored
     /// visibility or the hit-test behaviour of ordinary documents.
     pub fn hit_test(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions) -> Option<vectorcraft_doc::hit::Hit> {
-        vectorcraft_doc::hit::hit_test_at_zoom(self.doc, p, opt, self.zoom)
+        if self.edit_hidden_map_art {
+            vectorcraft_doc::hit::hit_test(self.doc, p, opt)
+        } else {
+            vectorcraft_doc::hit::hit_test_at_zoom(self.doc, p, opt, self.zoom)
+        }
     }
 
     pub fn objects_at(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions, scope: Option<NodeId>) -> Vec<NodeId> {
-        vectorcraft_doc::hit::objects_at_zoom(self.doc, p, opt, scope, self.zoom)
+        if self.edit_hidden_map_art {
+            vectorcraft_doc::hit::objects_at(self.doc, p, opt, scope)
+        } else {
+            vectorcraft_doc::hit::objects_at_zoom(self.doc, p, opt, scope, self.zoom)
+        }
     }
 
     pub fn marquee(&self, r: vectorcraft_geom::Rect, scope: Option<NodeId>, leaves: bool) -> Vec<NodeId> {
-        vectorcraft_doc::hit::marquee_at_zoom(self.doc, r, scope, leaves, self.zoom)
+        if self.edit_hidden_map_art {
+            vectorcraft_doc::hit::marquee(self.doc, r, scope, leaves)
+        } else {
+            vectorcraft_doc::hit::marquee_at_zoom(self.doc, r, scope, leaves, self.zoom)
+        }
     }
 
     pub fn selected_hidden_at(&self, p: Point, opt: vectorcraft_doc::hit::HitOptions, selected: &[NodeId]) -> Option<NodeId> {
-        vectorcraft_doc::hit::selected_hidden_at_zoom(self.doc, p, opt, selected, self.zoom)
+        if self.edit_hidden_map_art {
+            vectorcraft_doc::hit::selected_hidden_at(self.doc, p, opt, selected)
+        } else {
+            vectorcraft_doc::hit::selected_hidden_at_zoom(self.doc, p, opt, selected, self.zoom)
+        }
     }
 
     /// Tolerance in document units for `px` screen pixels.

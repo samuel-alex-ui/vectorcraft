@@ -191,7 +191,7 @@ pub fn enabled(app: &VectorcraftApp, id: &str) -> bool {
         return (c.enabled)(&app.session).is_ok() || app.system_paste && id.starts_with("edit.paste");
     }
     match id {
-        "ui.mapModes" | "ui.mapModeFilters" => app.session.active().is_some_and(|d| d.doc.world_map.is_some()),
+        "ui.mapModes" | "ui.mapModeFilters" | "ui.editHiddenMapArt" => app.session.active().is_some_and(|d| d.doc.world_map.is_some()),
         // Save is off for a clean document that already has its own file.
         "file.save" => app.session.active().is_some_and(|d| d.path.is_none() || d.converted || d.is_dirty()),
         "type.bold" | "type.italic" | "type.underline" | "type.lineComposer" | "type.hyphenate" => {

@@ -17,6 +17,7 @@ const ROUNDED_RECTANGLE: &str = "roundedRectangle";
 #[derive(Clone, Copy, Debug)]
 pub struct ViewInfo {
     pub zoom: f64,
+    pub edit_hidden_map_art: bool,
     pub outline: bool,
     pub smart_guides: bool,
     /// View → Show Guides: the ruler guides show (and, unlocked, can be picked).
@@ -42,6 +43,7 @@ impl Default for ViewInfo {
     fn default() -> Self {
         Self {
             zoom: 1.0,
+            edit_hidden_map_art: false,
             outline: false,
             smart_guides: true,
             guides: true,
@@ -274,6 +276,7 @@ impl Session {
             revision: (st.uid, st.revision),
             selection: &st.selection,
             zoom: view.zoom,
+            edit_hidden_map_art: view.edit_hidden_map_art,
             isolation: st.isolation,
             paint: &self.paint,
             outline: view.outline,
