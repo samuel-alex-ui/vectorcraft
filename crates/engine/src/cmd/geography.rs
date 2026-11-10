@@ -1,10 +1,10 @@
 //! Geographic metadata only. Modes, rendering and layer organization remain separate commands.
 use serde::Deserialize;
 use serde_json::{Value, json};
-use vectorcraft_doc::{GeographicMetadata, MapSemantics};
+use vectorcraft_doc::{GeographicMetadata, MapSemantics, geography::valid_entity_id};
 
 use super::overprint::edit_counted;
-use super::{CommandSpec, Result, Session, bad, cmd, has_doc, targets};
+use super::{CommandSpec, Result, Session, bad, cmd, has_doc, named_ids, targets};
 
 fn world(s: &Session) -> std::result::Result<(), String> {
     has_doc(s)?;
@@ -34,6 +34,17 @@ pub fn specs() -> Vec<CommandSpec> {
             world,
             category
         ),
+        cmd!(
+            "map.setEntity",
+            "Set Geographic Entity",
+            [],
+            None,
+            "{ids?|id?, entity: UUID|null} set or clear only the shared geographic entity ID, world maps only, one undo step → {changed}",
+            world,
+            set_entity
+        ),
+        cmd!(query "map.entityRepresentations", "Geographic Entity Representations", [], None,
+            "{entity: UUID} list document objects sharing this entity, including hidden variants, in paint order → {entity, objects: [{id, detailLevel}]}", world, representations),
         cmd!(query "map.geographyInfo", "Geographic Metadata Info", [], None,
             "{ids?|id?} read metadata and category definitions; no inferred inheritance or geometry synchronization → {schema, objects: [{id, geography}]}", world, info),
     ]
@@ -129,4 +140,51 @@ fn info(s: &mut Session, p: &Value) -> Result<Value> {
         objects.push(json!({"id": id, "geography": node.extras().geography}));
     }
     Ok(json!({"schema": d.map_semantics, "objects": objects}))
+}
+
+fn entity_id<'a>(value: Option<&'a Value>, command: &str) -> Result<&'a str> {
+    value.and_then(Value::as_str).filter(|id| valid_entity_id(id)).ok_or_else(|| bad(command, "give a non-nil lowercase UUID"))
+}
+
+fn set_entity(s: &mut Session, p: &Value) -> Result<Value> {
+    const C: &str = "map.setEntity";
+    let value = p.get("entity");
+    let entity = if value.is_some_and(Value::is_null) { None } else { Some(entity_id(value, C)?) };
+    let ids = named_ids(p)?.unwrap_or_else(|| s.active().map_or_else(Vec::new, |st| st.selection.objects.clone()));
+    if ids.is_empty() {
+        return Err(bad(C, "give at least one target"));
+    }
+    let changed = edit_counted(s, "Set Geographic Entity", |d| {
+        let mut changed = 0;
+        for id in &ids {
+            let node = d.node_mut(*id).ok_or_else(|| bad(C, "target does not exist"))?;
+            let existing = node.extras().geography.as_deref();
+            if existing.and_then(|g| g.geographic_entity_id.as_deref()) == entity {
+                continue;
+            }
+            let mut geography = existing.cloned().unwrap_or_default();
+            geography.geographic_entity_id = entity.map(str::to_owned);
+            node.extras_mut().geography = (!geography.is_empty()).then_some(Box::new(geography));
+            changed += 1;
+        }
+        if changed > 0 && entity.is_some() {
+            enable(d).map_err(|e| bad(C, e))?;
+        }
+        Ok(changed)
+    })?;
+    Ok(json!({"changed": changed}))
+}
+
+fn representations(s: &mut Session, p: &Value) -> Result<Value> {
+    let entity = entity_id(p.get("entity"), "map.entityRepresentations")?;
+    let mut objects = Vec::new();
+    for layer in &s.doc()?.doc.layers {
+        let detail_level = layer.extras().detail_level.then_some(layer.id);
+        layer.walk(&mut |node| {
+            if node.extras().geography.as_ref().and_then(|g| g.geographic_entity_id.as_deref()) == Some(entity) {
+                objects.push(json!({"id": node.id, "detailLevel": detail_level}));
+            }
+        });
+    }
+    Ok(json!({"entity": entity, "objects": objects}))
 }

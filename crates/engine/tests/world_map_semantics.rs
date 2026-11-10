@@ -130,3 +130,52 @@ proptest::proptest! {
         }
     }
 }
+
+#[test]
+fn entity_commands_preserve_metadata_and_find_variants_across_levels() {
+    let mut s = world();
+    let legacy = vectorcraft_format::save_with(&s.doc().unwrap().doc, &Default::default()).unwrap();
+    let legacy = vectorcraft_format::load(&legacy).unwrap();
+    assert!(legacy.map_semantics.is_none());
+    let lookup = |s: &mut Session| exec(s, "map.entityRepresentations", json!({"entity": ENTITY}))["objects"].clone();
+    assert_eq!(lookup(&mut s), json!([]));
+    let mut variants = Vec::new();
+    for x in [10.0, 15.0] {
+        let level = exec(&mut s, "map.detailLevel.create", json!({}))["id"].clone();
+        exec(&mut s, "layer.setCurrent", json!({"id": level}));
+        variants.push((level, rect(&mut s, x, 20.0, 40.0, 30.0)));
+    }
+    let [(coarse_level, coarse), (fine_level, fine)] = &variants[..] else { panic!("two variants") };
+    exec(&mut s, "map.setGeography", json!({"id": coarse, "geography":{"tags":["keep"]}}));
+    let before = s.doc().unwrap().doc.clone();
+    for params in [json!({"id": coarse,"entity":"bad"}), json!({"ids":[coarse, 999999],"entity":ENTITY}), json!({"id": coarse})] {
+        assert!(s.execute("map.setEntity", &params).is_err());
+        assert_eq!(s.doc().unwrap().doc, before);
+    }
+    let link = json!({"ids":[coarse, fine],"entity":ENTITY});
+    assert_eq!(exec(&mut s, "map.setEntity", link.clone())["changed"], 2);
+    assert_eq!(exec(&mut s, "map.setEntity", link)["changed"], 0);
+    let expected = json!([{"id":coarse,"detailLevel":coarse_level},{"id":fine,"detailLevel":fine_level}]);
+    assert_eq!(lookup(&mut s), expected);
+    let linked = s.doc().unwrap().doc.clone();
+    assert_eq!(linked.node(*coarse).unwrap().extras().geography.as_ref().unwrap().tags, ["keep"]);
+    let bytes = vectorcraft_format::save_with(&linked, &Default::default()).unwrap();
+    assert_eq!(vectorcraft_format::load(&bytes).unwrap().layers, linked.layers);
+    exec(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.doc().unwrap().doc, before);
+    exec(&mut s, "edit.redo", json!({}));
+    select(&mut s, &[*fine]);
+    exec(&mut s, "object.move", json!({"dx":3,"dy":4}));
+    assert_eq!(s.doc().unwrap().doc.node(*coarse), linked.node(*coarse));
+    assert_ne!(s.doc().unwrap().doc.node(*fine), linked.node(*fine));
+    exec(&mut s, "edit.clear", json!({"ids":[fine]}));
+    assert_eq!(lookup(&mut s), json!([{"id":coarse,"detailLevel":coarse_level}]));
+    exec(&mut s, "edit.undo", json!({}));
+    assert_eq!(lookup(&mut s), expected);
+    exec(&mut s, "map.setEntity", json!({"id":coarse,"entity":null}));
+    assert_eq!(lookup(&mut s), json!([{"id":fine,"detailLevel":fine_level}]));
+    assert_eq!(s.doc().unwrap().doc.node(*coarse).unwrap().extras().geography.as_ref().unwrap().tags, ["keep"]);
+    let mut normal = vectorcraft_testkit::fixtures::session();
+    assert!(normal.execute("map.setEntity", &json!({"id":1,"entity":ENTITY})).is_err());
+    assert!(normal.execute("map.entityRepresentations", &json!({"entity":ENTITY})).is_err());
+}
