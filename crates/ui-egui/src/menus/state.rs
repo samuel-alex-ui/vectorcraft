@@ -191,7 +191,7 @@ pub fn enabled(app: &VectorcraftApp, id: &str) -> bool {
         return (c.enabled)(&app.session).is_ok() || app.system_paste && id.starts_with("edit.paste");
     }
     match id {
-        "ui.mapModeStyles" | "ui.worldMapSettings" | "ui.mapModes" | "ui.mapModeFilters" | "ui.editHiddenMapArt" => {
+        "ui.globe" | "ui.mapModeStyles" | "ui.worldMapSettings" | "ui.mapModes" | "ui.mapModeFilters" | "ui.editHiddenMapArt" => {
             app.session.active().is_some_and(|d| d.doc.world_map.is_some())
         }
         // Save is off for a clean document that already has its own file.

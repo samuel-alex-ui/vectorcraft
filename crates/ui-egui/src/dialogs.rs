@@ -44,6 +44,7 @@ pub mod flattener_presets;
 pub(crate) mod form;
 pub(crate) mod free_distort;
 pub mod freehand;
+pub mod globe;
 mod gradient_stop;
 pub mod graph_data;
 pub mod graph_design;
@@ -405,6 +406,7 @@ registry! {
     EditViews: [edit_views::KIND] => edit_views::SPEC,
     PerspectivePlane: [perspective_plane::KIND] => perspective_plane::SPEC,
     LayerOptions: [layer_options::KIND] => layer_options::SPEC,
+    Globe: [globe::KIND] => globe::SPEC,
     WorldMapSettings: [world_map_settings::KIND] => world_map_settings::SPEC,
     MapModes: [map_modes::KIND] => map_modes::SPEC,
     MapModeStyles: [map_mode_styles::KIND] => map_mode_styles::SPEC,

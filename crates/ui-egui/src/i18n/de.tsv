@@ -5888,3 +5888,7 @@ breakText	Glyphs	Glyphen
 	Map Mode Styles	Kartenmodusstile
 	Invalid style rules	Ungültige Stilregeln
 	The first matching category sets the fill color.	Die erste passende Kategorie bestimmt die Füllfarbe.
+	3D Globe	3D-Globus
+	Center 2D Map	2D-Karte zentrieren
+	Drag to rotate. Scroll to zoom.	Ziehen zum Drehen. Scrollen zum Zoomen.
+	Map extent is too small for the globe preview.	Die Kartenausdehnung ist für die Globusvorschau zu klein.
