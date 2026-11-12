@@ -740,6 +740,7 @@ mod tests {
             px: 1.0,
             opts: &opts,
             inherited_fade: None,
+            map_styles: None,
             ink: Ink::Display,
             plates: None,
         };

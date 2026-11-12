@@ -34,7 +34,7 @@ pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
     }
 }
 
-fn category_name(doc: &Document, id: &str) -> String {
+pub(super) fn category_name(doc: &Document, id: &str) -> String {
     if let Some(name) = doc.map_semantics.as_ref().and_then(|s| s.categories.get(id)) {
         return name.clone();
     }

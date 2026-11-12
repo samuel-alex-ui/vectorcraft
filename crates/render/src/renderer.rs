@@ -124,8 +124,19 @@ impl Renderer {
         let screen = if opts.rich_black { Ink::RichBlack } else { Ink::Display };
         let symbols = doc.symbol_boxes().quick();
         let plates = proof::plate_lut(opts);
-        let frame =
-            Frame { mt: threads > 0, doc, symbols: &symbols, view, visible, px, opts, inherited_fade: None, ink: screen, plates: plates.as_deref() };
+        let frame = Frame {
+            mt: threads > 0,
+            doc,
+            symbols: &symbols,
+            view,
+            visible,
+            px,
+            opts,
+            inherited_fade: None,
+            map_styles: opts.world_map_zoom.and_then(|_| doc.active_map_styles()),
+            ink: screen,
+            plates: plates.as_deref(),
+        };
         self.begin_frame();
         // View Opacity Mask: the mask's coverage in greyscale instead of the artwork.
         if let Some(m) = opts.mask_view.and_then(|id| doc.node(id)).and_then(|n| n.extras().mask.as_deref()) {
@@ -338,8 +349,19 @@ impl Renderer {
         let mut ctx = single_threaded_context(w, h);
         let opts = RenderOptions::default();
         let symbols = doc.symbol_boxes().quick();
-        let frame =
-            Frame { mt: false, doc, symbols: &symbols, view, visible, px, opts: &opts, inherited_fade: None, ink: Ink::Display, plates: None };
+        let frame = Frame {
+            mt: false,
+            doc,
+            symbols: &symbols,
+            view,
+            visible,
+            px,
+            opts: &opts,
+            inherited_fade: None,
+            map_styles: None,
+            ink: Ink::Display,
+            plates: None,
+        };
         self.begin_frame();
         (self.knockout, self.nested, self.backdrop, self.picture) = (false, 0, None, None);
         self.clip_paths.clear();
@@ -392,6 +414,7 @@ impl Renderer {
             px: 1.0 / s,
             opts,
             inherited_fade: None,
+            map_styles: None,
             ink: Ink::Display,
             plates: None,
         };

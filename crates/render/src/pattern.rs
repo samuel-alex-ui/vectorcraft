@@ -201,6 +201,7 @@ fn rasterize(
             px: 1.0 / v.determinant().abs().sqrt().max(1e-12),
             opts: &opts,
             inherited_fade: None,
+            map_styles: None,
             ink,
             plates: None,
         };

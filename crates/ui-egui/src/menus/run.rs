@@ -683,6 +683,7 @@ fn run_ui_part8(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             crate::dialogs::graphic_style_options::open_merge(app, names.unwrap_or_default())
         }
         "ui.tileEdgeColor" => crate::dialogs::tile_edge_color::open(app),
+        "ui.mapModeStyles" => crate::dialogs::map_mode_styles::open(app),
         "ui.mapModeFilters" => crate::dialogs::map_mode_filters::open(app, p),
         "ui.editHiddenMapArt" => crate::dialogs::map_modes::toggle_edit_hidden(app),
         "ui.newWorldMap" => crate::dialogs::world_map_settings::open(app, true),

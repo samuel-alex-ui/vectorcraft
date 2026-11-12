@@ -46,6 +46,9 @@ pub(crate) fn bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
         if id != modes.active {
             let _ = app.run("map.mode.select", json!({"id": id}));
         }
+        if ui.button(tl!("Map Mode Styles")).clicked() {
+            let _ = app.run("ui.mapModeStyles", json!({}));
+        }
         if ui.button(tl!("Map Mode Filters")).clicked() {
             let _ = app.run("ui.mapModeFilters", json!({}));
         }

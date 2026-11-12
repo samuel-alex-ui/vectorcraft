@@ -61,6 +61,7 @@ pub mod live_paint_bucket;
 pub mod live_paint_gaps;
 pub mod live_paint_selection;
 pub mod map_mode_filters;
+pub mod map_mode_styles;
 pub mod map_modes;
 pub mod missing_fonts;
 pub mod missing_links;
@@ -408,6 +409,7 @@ registry! {
     Globe: [globe::KIND] => globe::SPEC,
     WorldMapSettings: [world_map_settings::KIND] => world_map_settings::SPEC,
     MapModes: [map_modes::KIND] => map_modes::SPEC,
+    MapModeStyles: [map_mode_styles::KIND] => map_mode_styles::SPEC,
     MapModeFilters: [map_mode_filters::KIND] => map_mode_filters::SPEC,
     LayersPanelOptions: [layers_panel_options::KIND] => layers_panel_options::SPEC,
     PathfinderOptions: [pathfinder_options::KIND] => pathfinder_options::SPEC,
