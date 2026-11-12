@@ -376,6 +376,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ("ui.mapModeFilters", "Map Mode Filters", "", "{id?} open filters for a world-map mode (default: active mode)"),
     ("ui.editHiddenMapArt", "Edit Hidden Map Art", "", "{} toggle temporary editing of map art hidden by mode or zoom"),
     ("ui.newWorldMap", "New World Map…", "", "{} open the new world-map settings"),
+    ("ui.globe", "3D Globe", "", "{} open the read-only world-map globe"),
     ("ui.worldMapSettings", "World Map Settings…", "", "{} edit the active world map settings"),
     ("ui.mapModes", "Configure Map Modes", "", "{} open the world-map mode configuration dialog"),
     ("view.zoomIn", "Zoom In", "Cmd+=", "{}"),
