@@ -90,7 +90,7 @@ Die ausdrücklich als bestätigt markierten AETH-01-Grundlagen gelten. Die übri
 | 08 | [Kartennaht, Maße & Skalierung](aetherys-tasks/AETH-08.md) | PR #18 und #19 in main; Exportgrenzen und offene macOS-Nutzerabnahme dokumentiert |
 | 09 | [Großkarten-Performance](aetherys-tasks/AETH-09.md) | Vorläufig abgeschlossen; Gruppenindex und Cache-Aufbau gemessen, große Einzelpfade und Streaming offen |
 | 10 | 3D-Vorschau | Nur lesender Globus auf denselben 2D-Geodaten |
-| 11 | Spätere Ausbaustufen | Modus-Stile, Historie, Chronica-Links, fortgeschrittene Editierhilfen |
+| 11 | [Spätere Ausbaustufen](aetherys-tasks/AETH-11.md) | Getrennte Vorschläge für Modus-Stile, Chronica-Links und Zeitstände |
 
 **Codex-Definition of Done pro Paket:** begrenzte Änderung, konkrete Tests (unit/integration + Speichern/Öffnen), Formatierung, Clippy (sofern ausführbar), Testbericht mit offen genannten Lücken, Rückwärtskompatibilität sowie PR mit Verweis auf dieses Dokument. Keine stillen Änderungen an der realen Aetherys-Karte. Bei Abhängigkeiten zu offenen PRs: sauber rebasen statt Features duplizieren.
 
