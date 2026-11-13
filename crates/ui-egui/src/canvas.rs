@@ -27,6 +27,7 @@ mod outline;
 mod overlays;
 mod panes;
 mod raster;
+mod scale_bar;
 mod task_bar;
 mod tool_overlays;
 mod view;
@@ -367,6 +368,9 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
     if app.ui.screen_mode < 3 {
         crate::free_transform::show(app, ui, xf.rect);
+    }
+    if let Some(map) = doc.world_map {
+        scale_bar::paint(&painter, &xf, map, &t);
     }
     artboard_name_editor(app, ui, &xf);
     if resp.hovered() {

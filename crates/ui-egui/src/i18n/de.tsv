@@ -5892,3 +5892,5 @@ breakText	Glyphs	Glyphen
 	Center 2D Map	2D-Karte zentrieren
 	Drag to rotate. Scroll to zoom.	Ziehen zum Drehen. Scrollen zum Zoomen.
 	Map extent is too small for the globe preview.	Die Kartenausdehnung ist für die Globusvorschau zu klein.
+	Set a planet radius to show the scale	Planetenradius für die Maßstabsleiste festlegen
+	Scale unavailable at this position	Maßstab an dieser Position nicht verfügbar
