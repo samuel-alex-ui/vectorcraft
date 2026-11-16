@@ -204,7 +204,7 @@ pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context) {
         // Escape closes a dropdown list or popover open in the dialog (each closes itself on it) and
         // leaves the dialog open.
         let popup = app.ui.dialog.as_ref().is_some_and(|d| egui::Popup::is_any_open(ctx) || crate::dialogs::brush_options::tips_open(d));
-        if !popup && ctx.input(|i| i.key_pressed(Key::Escape)) {
+        if !popup && !app.ui.dialog.as_ref().is_some_and(crate::dialogs::globe::fullscreen) && ctx.input(|i| i.key_pressed(Key::Escape)) {
             crate::dialogs::cancel(app);
             app.ui.palette_open = false;
         }
