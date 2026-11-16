@@ -59,8 +59,7 @@ Nach tragfähiger Georeferenz und Nahtregeln: separate drehbare/zoombare read-on
    Undo-Historie vor und nach der Navigation vergleichen.
 
 Die Vorschau verwendet eine abgeleitete Rastertextur. Bei starker
-Vergrößerung wird sie unscharf. Der Globuszoom lädt zunächst keine feinere
-Detailstufe. Die 2D-Kamera bestimmt die gezeigte Detailstufe. Ein
+Vergrößerung wird sie unscharf. Ein
 Planetenradius ist für die Darstellung der Einheitskugel optional.
 Über die Naht falsch gezeichnete Altgeometrie wird nicht automatisch
 umgedeutet. Terrainrelief, 3D-Bearbeitung und Streaming gehören nicht
@@ -77,7 +76,7 @@ Die native macOS-App wurde mit einer separat erzeugten synthetischen
 Weltkarte gestartet. Im Fenster wurden Farben und Küsten dargestellt.
 Mausdrag, Mausrad und Zentrieren wurden über die native Oberfläche geprüft.
 Der Globus zeigt die Vorschautextur mit maximal etwa 1024 × 512 Pixeln.
-Weitere Detailstufen werden über den 2D-Zoom gewählt. Die Vorschau übernimmt
+Die Vorschau übernimmt
 die Nahtregel der geöffneten Karte. Sie erzeugt keine eigene Kartendatei.
 
 An der Datumsgrenze tastet die Kugel die Textur periodisch ab. Der native
@@ -91,3 +90,19 @@ auch in der Globusvorschau sichtbar.
 zwei Tests bestanden. Geprüft sind Pole und periodische Abtastung,
 Globuszoom, echte 2D-Füllfarbe, Kartenmodusfilter, Wiederverwendung der
 Textur beim Drehen und Zentrieren ohne Dokumentänderung.
+
+## Vollbild und Zoom-Fade
+
+**Globus im Vollbild** öffnet die Kugel im nativen Vollbild. Mit
+**Vollbild verlassen** oder Escape geht es zurück zur ursprünglichen
+Globusvorschau. Drehung und Zoom bleiben beim Wechsel erhalten.
+
+Der Globus übernimmt beim Öffnen den aktuellen 2D-Zoom und führt ihn
+danach unabhängig weiter. Das Mausrad verändert die Vergrößerung und
+übergibt denselben Zoomwert wie die 2D-Ansicht an den Kartenrenderer.
+Damit greifen dieselben Detailstufen, Fade-Grenzen und Kartenmodi.
+Reines Drehen verwendet die vorhandene Kartentextur weiter.
+
+Die globale Kartentextur bleibt auf 1024 × 512 Pixel begrenzt. Extreme
+Vergrößerung erreicht dieselben Fade-Schwellen, zeigt aber keine mit der
+2D-Vektoransicht vergleichbare Schärfe.
