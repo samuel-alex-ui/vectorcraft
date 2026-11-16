@@ -165,7 +165,7 @@ pub fn sync_window_title(app: &mut VectorcraftApp, ctx: &egui::Context) {
 /// frame stayed): the window goes full screen when one of them starts, and back when a mode with
 /// the menu bar returns. A window that was full screen already stays so.
 pub fn sync_fullscreen(app: &mut VectorcraftApp, ctx: &egui::Context) {
-    let want = app.ui.screen_mode >= 2;
+    let want = app.ui.screen_mode >= 2 || app.ui.dialog.as_ref().is_some_and(crate::dialogs::globe::fullscreen);
     let is = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
     if want && !is && !app.fullscreen_for_mode {
         ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(true));

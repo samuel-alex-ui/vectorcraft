@@ -623,6 +623,9 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
         ctx.request_repaint();
     }
     let focus_first = focus_first && !clicked;
+    if globe::fullscreen(&d) {
+        return globe::show_fullscreen(app, ctx, d);
+    }
     let spec = spec(&d.kind);
     if let Some(window) = spec.window {
         return window(app, ctx);

@@ -15,6 +15,45 @@ pub(super) const SPEC: DialogSpec =
     DialogSpec { heading: |_| tl!("3D Globe").into(), body, confirm: center_map, ok: Some("Center 2D Map"), min_width: 260.0, ..DialogSpec::FORM };
 
 const DIAMETER: usize = 480;
+const MIN_ZOOM: f64 = 0.0313;
+const MAX_ZOOM: f64 = 1_000_000.0;
+
+pub(crate) fn fullscreen(d: &Dialog) -> bool {
+    d.kind == KIND && d.bool("fullscreen")
+}
+
+pub(super) fn show_fullscreen(app: &mut VectorcraftApp, ctx: &egui::Context, mut d: Dialog) {
+    let screen = ctx.content_rect();
+    let response = egui::Modal::new(egui::Id::unique("globe-fullscreen"))
+        .area(egui::Modal::default_area(egui::Id::unique("globe-fullscreen")).anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO))
+        .frame(egui::Frame::new().fill(crate::theme::Tokens::get(ctx).panel))
+        .show(ctx, |ui| {
+            ui.set_min_size(screen.size());
+            ui.set_max_size(screen.size());
+            let (exit, center) = ui
+                .horizontal(|ui| {
+                    let exit = ui.button(tl!("Exit Globe Full Screen")).clicked();
+                    let center = ui.button(tl!("Center 2D Map")).clicked();
+                    (exit, center)
+                })
+                .inner;
+            let invalid = body(app, ui, &mut d);
+            (exit, center, invalid)
+        });
+    let (exit, center, invalid) = response.inner;
+    if invalid {
+        app.ui.dialog = None;
+    } else if center {
+        if center_map(app, &d).is_err() {
+            app.ui.dialog = None;
+        }
+    } else {
+        if exit || response.should_close() {
+            d.fields.insert("fullscreen".into(), json!(false));
+        }
+        app.ui.dialog = Some(d);
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 struct Camera {
@@ -26,7 +65,11 @@ struct Camera {
 impl Camera {
     fn of(d: &Dialog) -> Self {
         let number = |key, fallback| d.fields.get(key).and_then(Value::as_f64).filter(|v| v.is_finite()).unwrap_or(fallback);
-        Self { lon: longitude(number("longitude", 0.0)), lat: number("latitude", 0.0).clamp(-90.0, 90.0), zoom: number("zoom", 1.0).clamp(0.65, 4.0) }
+        Self {
+            lon: longitude(number("longitude", 0.0)),
+            lat: number("latitude", 0.0).clamp(-90.0, 90.0),
+            zoom: number("zoom", 1.0).clamp(MIN_ZOOM, MAX_ZOOM),
+        }
     }
 }
 
@@ -48,6 +91,7 @@ struct Preview {
     map: Arc<Rendered>,
     camera: Camera,
     globe: TextureHandle,
+    diameter: usize,
 }
 
 pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
@@ -55,13 +99,16 @@ pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
     let map = st.doc.world_map.ok_or("Requires a world-map document")?;
     let (w, h) = map.size();
     let center = app.view().filter(|v| v.fitted).map_or(Point::new(w * 0.5, h * 0.5), |v| v.center);
+    let zoom = app.view().map_or(1.0, |v| v.zoom);
+    let fit_zoom = app.canvas_rect.map_or(zoom, |rect| (f64::from(rect.width()) / w).min(f64::from(rect.height()) / h));
     app.ui.dialog = Some(Dialog::new(
         KIND,
         json!({
             "document": st.uid,
             "longitude": center.x.clamp(0.0, w) / w * 360.0 - 180.0,
             "latitude": 90.0 - center.y.clamp(0.0, h) / h * 180.0,
-            "zoom": 1.0
+            "zoom": zoom,
+            "fitZoom": fit_zoom.clamp(MIN_ZOOM, MAX_ZOOM)
         }),
     ));
     Ok(Value::Null)
@@ -72,20 +119,30 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
         return true;
     };
     let Some(map) = st.doc.world_map else { return true };
-    let source = Source { uid: st.uid, revision: st.revision, zoom: app.view().map_or(1.0, |v| v.zoom), templates: app.ui.view.templates };
     let (width, height) = map.size();
     let scale = 1024.0 / width;
     if !scale.is_finite() {
         ui.label(tl!("Map extent is too small for the globe preview."));
         return false;
     }
+    let full = fullscreen(d);
+    if !full && ui.button(tl!("Globe Full Screen")).clicked() {
+        d.fields.insert("fullscreen".into(), json!(true));
+    }
     let available = ui.ctx().content_rect();
-    let side = (available.height() - 180.0).min(available.width() - 80.0).clamp(180.0, DIAMETER as f32);
-    let (rect, response) = ui.allocate_exact_size(egui::Vec2::splat(side), egui::Sense::drag());
+    let side = if full {
+        (ui.available_height() - 30.0).min(ui.available_width()).max(1.0)
+    } else {
+        (available.height() - 210.0).min(available.width() - 80.0).clamp(140.0, DIAMETER as f32)
+    };
+    let (_, rect) = ui.allocate_space(egui::Vec2::splat(side));
+    let rect = if full { rect.translate(egui::vec2((available.width() - side) / 2.0, 0.0)) } else { rect };
+    let response = ui.interact(rect, ui.scope_id().with("globe-surface"), egui::Sense::drag());
     let mut camera = Camera::of(d);
+    let fit_zoom = d.fields.get("fitZoom").and_then(Value::as_f64).unwrap_or(1.0).clamp(MIN_ZOOM, MAX_ZOOM);
     if response.dragged_by(egui::PointerButton::Primary) {
         let delta = ui.input(|i| i.pointer.delta());
-        let sensitivity = 180.0 / (f64::from(side) * camera.zoom);
+        let sensitivity = 180.0 / (f64::from(side) * (camera.zoom / fit_zoom));
         camera.lon = longitude(camera.lon - f64::from(delta.x) * sensitivity);
         camera.lat = (camera.lat + f64::from(delta.y) * sensitivity).clamp(-90.0, 90.0);
     }
@@ -95,15 +152,18 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
             i.smooth_scroll_delta.y = 0.0;
             y
         });
-        camera.zoom = (camera.zoom * (f64::from(wheel) * 0.005).exp()).clamp(0.65, 4.0);
+        camera.zoom = (camera.zoom * (f64::from(wheel) * 0.005).exp()).clamp(MIN_ZOOM, MAX_ZOOM);
     }
     d.fields.insert("longitude".into(), json!(camera.lon));
     d.fields.insert("latitude".into(), json!(camera.lat));
     d.fields.insert("zoom".into(), json!(camera.zoom));
 
+    let source = Source { uid: st.uid, revision: st.revision, zoom: camera.zoom, templates: app.ui.view.templates };
+    camera.zoom /= fit_zoom;
+    let diameter = (side * ui.ctx().pixels_per_point()).clamp(DIAMETER as f32, 1024.0) as usize;
     let id = egui::Id::unique("world-globe-preview");
     let cached = ui.ctx().data(|data| data.get_temp::<Preview>(id));
-    let texture = if let Some(preview) = cached.as_ref().filter(|p| p.source == source && p.camera == camera) {
+    let texture = if let Some(preview) = cached.as_ref().filter(|p| p.source == source && p.camera == camera && p.diameter == diameter) {
         preview.globe.id()
     } else {
         let map_pixels = cached.as_ref().filter(|p| p.source == source).map_or_else(
@@ -120,7 +180,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
             },
             |p| p.map.clone(),
         );
-        let image = project(&map_pixels, camera, DIAMETER);
+        let image = project(&map_pixels, camera, diameter);
         let globe = if let Some(preview) = cached {
             let mut texture = preview.globe;
             texture.set(image, egui::TextureOptions::LINEAR);
@@ -129,11 +189,11 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
             ui.ctx().load_texture("world-globe", image, egui::TextureOptions::LINEAR)
         };
         let texture = globe.id();
-        ui.ctx().data_mut(|data| data.insert_temp(id, Preview { source, map: map_pixels, camera, globe }));
+        ui.ctx().data_mut(|data| data.insert_temp(id, Preview { source, map: map_pixels, camera, globe, diameter }));
         texture
     };
     ui.painter().image(texture, rect, egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)), Color32::WHITE);
-    ui.label(tl!("Drag to rotate. Scroll to zoom."));
+    ui.label(format!("{}  {:.2}%", tl!("Drag to rotate. Scroll to zoom."), source.zoom * 100.0));
     false
 }
 
@@ -238,15 +298,34 @@ mod tests {
         let mut app = VectorcraftApp::new(Session::new(), Default::default());
         assert!(app.run("ui.globe", json!({})).is_err());
         app.run("file.newWorldMap", json!({})).unwrap();
+        let layer = app.run("map.detailLevel.create", json!({})).unwrap()["id"].clone();
+        app.run("layer.setCurrent", json!({"id":layer})).unwrap();
+        app.run("layer.setProps", json!({"id":layer,"zoomFade":{"fade_in":[0.5,1.5]}})).unwrap();
         let id = app.run("shape.rectangle", json!({"x":490,"y":240,"width":20,"height":20})).unwrap()["id"].clone();
         app.run("paint.setFill", json!({"id":id,"color":"#ff0000"})).unwrap();
         app.run("ui.globe", json!({})).unwrap();
+        app.ui.dialog.as_mut().unwrap().fields.insert("zoom".into(), json!(2.0));
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut output = ctx.run_ui(Default::default(), |ui| super::super::show(&mut app, ui.ctx()));
         output.textures_delta.clear();
         let cached = ctx.data(|data| data.get_temp::<Preview>(egui::Id::unique("world-globe-preview"))).unwrap();
         assert_eq!(cached.map.pixel(512, 256), [255, 0, 0, 255]);
+        for (zoom, expected) in [(0.5, [255, 255, 255, 255]), (1.0, [255, 127, 127, 255])] {
+            let d = app.ui.dialog.as_mut().unwrap();
+            d.fields.insert("zoom".into(), json!(zoom));
+            d.fields.insert("fullscreen".into(), json!(true));
+            ctx.run_ui(Default::default(), |ui| super::super::show(&mut app, ui.ctx())).textures_delta.clear();
+            let preview = ctx.data(|data| data.get_temp::<Preview>(egui::Id::unique("world-globe-preview"))).unwrap();
+            assert_eq!(preview.source.zoom, zoom);
+            let actual = preview.map.pixel(512, 256);
+            assert!(actual.iter().zip(expected).all(|(&a, b)| a.abs_diff(b) <= 1), "{actual:?}");
+        }
+        let d = app.ui.dialog.as_mut().unwrap();
+        d.fields.insert("zoom".into(), json!(2.0));
+        d.fields.insert("fullscreen".into(), json!(false));
+        ctx.run_ui(Default::default(), |ui| super::super::show(&mut app, ui.ctx())).textures_delta.clear();
+        let cached = ctx.data(|data| data.get_temp::<Preview>(egui::Id::unique("world-globe-preview"))).unwrap();
         let d = app.ui.dialog.as_mut().unwrap();
         d.fields.insert("longitude".into(), json!(90.0));
         d.fields.insert("latitude".into(), json!(45.0));
